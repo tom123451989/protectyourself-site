@@ -1,7 +1,7 @@
 (() => {
 const $=id=>document.getElementById(id);
 const configKey='protectyourself-supabase-client-config';
-let supabase=null,session=null,services=[],products=[],orders=[];
+let supabase=null,session=null,services=[],products=[],orders=[],currentPolicy=null;
 const setStatus=(id,msg,type='')=>{const el=$(id);if(el){el.textContent=msg;el.className='admin-status '+type}};
 const safe=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function readConfig(){try{return JSON.parse(localStorage.getItem(configKey)||'{}')}catch{return {}}}
@@ -20,7 +20,7 @@ $('connectBtn').addEventListener('click',()=>{const url=$('sbUrl').value.trim(),
 $('loginBtn').addEventListener('click',async()=>{if(!supabase){setStatus('loginStatus','Connect Supabase first.','error');return}const email=$('loginEmail').value.trim(),password=$('loginPassword').value;if(!email||!password){setStatus('loginStatus','Enter email and password.','error');return}setStatus('loginStatus','Signing in…');const {data,error}=await supabase.auth.signInWithPassword({email,password});if(error){setStatus('loginStatus',error.message,'error');return}session=data.session;await showDashboard()});
 $('signOutBtn').addEventListener('click',async()=>{if(supabase)await supabase.auth.signOut();session=null;setConnectedUI(false);$('setupPanel').classList.remove('hidden');$('loginPanel').classList.remove('hidden')});
 if(window.supabase){/* initialized after config is loaded */}
-document.querySelectorAll('.admin-tabs button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.admin-tabs button').forEach(b=>b.classList.toggle('active',b===btn));document.querySelectorAll('.tab-content').forEach(p=>p.classList.toggle('hidden',p.id!==btn.dataset.tab));if(btn.dataset.tab==='productsTab')loadProducts();if(btn.dataset.tab==='ordersTab')loadOrders();if(btn.dataset.tab==='bookingsTab')loadBookings();if(btn.dataset.tab==='settingsTab')loadSettings()}));
+document.querySelectorAll('.admin-tabs button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.admin-tabs button').forEach(b=>b.classList.toggle('active',b===btn));document.querySelectorAll('.tab-content').forEach(p=>p.classList.toggle('hidden',p.id!==btn.dataset.tab));if(btn.dataset.tab==='productsTab')loadProducts();if(btn.dataset.tab==='ordersTab')loadOrders();if(btn.dataset.tab==='bookingsTab')loadBookings();if(btn.dataset.tab==='policiesTab')loadPolicy();if(btn.dataset.tab==='settingsTab')loadSettings()}));
 async function showDashboard(){setConnectedUI(true);setStatus('loginStatus','Signed in successfully.','success');await loadServices();await loadProducts();await loadOrders();await loadSettings();await loadBookings()}
 async function loadServices(){const {data,error}=await supabase.from('services').select('*').order('created_at',{ascending:true});if(error){$('servicesRows').innerHTML='<tr><td colspan="5">Could not load services: '+safe(error.message)+'</td></tr>';setStatus('serviceStatus','Check that you ran supabase-schema.sql and are signed in as an admin.','error');return}services=data||[];$('statServices').textContent=services.length;renderServices()}
 function renderServices(){$('servicesRows').innerHTML=services.length?services.map(s=>`<tr><td><b>${safe(s.name)}</b><br>${safe(s.description||'')}</td><td>₹${safe(s.price_inr)}</td><td>$${safe(s.price_usd)}</td><td>${s.is_active?'Published':'Hidden'}</td><td><button class="admin-btn secondary" data-edit="${safe(s.id)}">Edit</button><button class="admin-btn danger" data-delete="${safe(s.id)}">Delete</button></td></tr>`).join(''):'<tr><td colspan="5">No services yet. Use the form above to add one.</td></tr>';
@@ -98,5 +98,168 @@ async function loadBookings(){const {data,error}=await supabase.from('enquiries'
  $('bookingsRows').querySelectorAll('[data-save-booking]').forEach(b=>b.addEventListener('click',async()=>{const id=b.dataset.saveBooking;const status=$('bookingsRows').querySelector(`[data-status="${id}"]`).value;const payment_status=$('bookingsRows').querySelector(`[data-payment="${id}"]`).value;const {error}=await supabase.from('enquiries').update({status,payment_status}).eq('id',id);if(error){setStatus('bookingStatus',error.message,'error');return}setStatus('bookingStatus','Record updated. Only mark paid after verifying payment through your provider/bank.','success');await loadBookings()}))}
 async function loadSettings(){const {data,error}=await supabase.from('site_settings').select('*').eq('id',1).maybeSingle();if(error){setStatus('settingsStatus',error.message,'error');return}const s=data||{};$('settingBusinessName').value=s.business_name||'Protectyourself';$('settingEmail').value=s.contact_email||'protectyourselfin@gmail.com';$('settingWhatsapp').value=s.whatsapp_number||'';$('settingIndiaPayment').value=s.india_payment_url||'';$('settingIntlPayment').value=s.international_payment_url||'';$('settingBookingUrl').value=s.booking_form_url||'';$('settingNotice').value=s.public_notice||''}
 $('settingsForm').addEventListener('submit',async e=>{e.preventDefault();const row={id:1,business_name:$('settingBusinessName').value.trim(),contact_email:$('settingEmail').value.trim(),whatsapp_number:$('settingWhatsapp').value.trim(),india_payment_url:$('settingIndiaPayment').value.trim(),international_payment_url:$('settingIntlPayment').value.trim(),booking_form_url:$('settingBookingUrl').value.trim(),public_notice:$('settingNotice').value.trim()};const {error}=await supabase.from('site_settings').upsert(row);if(error){setStatus('settingsStatus',error.message,'error');return}setStatus('settingsStatus','Settings saved in Supabase. Website display integration must also be enabled in the public pages.','success')});
+
+const policyDefaults={
+ shipping:{title:'Shipping & Delivery Policy',content:`Last updated: [DD Month YYYY]
+
+1. Delivery area
+We currently accept product orders for delivery within India only, unless the checkout explicitly states otherwise.
+
+2. Processing time
+Orders are normally prepared for dispatch within [X–Y business days] after payment is confirmed. Processing may take longer during holidays, high-demand periods, or where additional verification is required. If there is a material delay, we will make reasonable efforts to contact you using the details provided with your order.
+
+3. Delivery estimates
+Estimated delivery is [X–Y business days] after dispatch, depending on the destination and courier service. These are estimates, not guaranteed dates. Remote locations, weather, transport disruptions and other events outside our reasonable control may cause delays.
+
+4. Shipping charges
+Any shipping charge applicable to an order will be shown at checkout before payment. If checkout displays free shipping, no shipping charge is collected for that order.
+
+5. Address and delivery attempts
+Please provide a complete and accurate delivery address and phone number. If an order is returned because the address is incorrect, the recipient is unavailable, or delivery is refused, contact us to discuss available options. Any additional shipping charge will be disclosed before it is collected.
+
+6. Damaged, incorrect or missing items
+Please contact us promptly at [CUSTOMER SUPPORT EMAIL] with your order number and photographs of the parcel/item if it arrived damaged, incorrect or incomplete. This helps us investigate and does not limit any rights available under applicable law.
+
+7. Contact
+Email: [CUSTOMER SUPPORT EMAIL]
+Business/legal name: [LEGAL BUSINESS NAME]
+Address: [BUSINESS ADDRESS]`},
+ cancellation:{title:'Order Cancellation Policy',content:`Last updated: [DD Month YYYY]
+
+1. Requesting cancellation
+To request cancellation, contact [CUSTOMER SUPPORT EMAIL] and provide your order number as soon as possible. A request is not confirmed until we acknowledge it.
+
+2. Before dispatch
+Where an order has not been dispatched, we will make reasonable efforts to cancel it. If payment was collected and cancellation is accepted, the eligible refund will be initiated to the original payment method, subject to applicable payment-provider processing times.
+
+3. After dispatch
+An order that has already been dispatched may not be cancellable in transit. Please contact us for return options under the Returns & Refunds Policy.
+
+4. Seller-initiated cancellation
+If we cancel an order, we will notify you and initiate any applicable refund. We will not impose a cancellation charge on customers unless permitted by applicable law and consistent with the applicable rules.
+
+5. Incorrect or suspicious orders
+We may contact you to verify order details or payment status where reasonably necessary. An order is not considered paid merely because a payment attempt was initiated.
+
+6. Contact
+Email: [CUSTOMER SUPPORT EMAIL]
+Business/legal name: [LEGAL BUSINESS NAME]
+Address: [BUSINESS ADDRESS]`},
+ returns_refunds:{title:'Returns & Refunds Policy',content:`Last updated: [DD Month YYYY]
+
+1. Contact us first
+To request a return, replacement or refund, email [CUSTOMER SUPPORT EMAIL] with your order number, a description of the issue and clear photographs where relevant. Please keep the product and its packaging until we respond.
+
+2. Eligible issues
+We will review requests involving items that are defective, damaged in transit, incorrect, spurious, materially different from their description, incomplete, or delivered outside the stated schedule where applicable law provides a remedy. Nothing in this policy limits consumer rights available under applicable law.
+
+3. Change of mind
+For a change-of-mind request, contact us before returning anything. Eligibility depends on the product type, condition, hygiene/safety considerations, and applicable law. Do not send an item back without return instructions.
+
+4. Product condition
+Where a return is accepted, we may ask that the item and included accessories/packaging be returned in the condition reasonably required for assessment, except where damage or defect is the reason for the claim.
+
+5. Return shipping
+We will explain any applicable return-shipping arrangements before you send an item back. Where the issue is our error or the item is defective/damaged/incorrect, we will assess the appropriate remedy and shipping responsibility in accordance with applicable law.
+
+6. Refund processing
+Once a refund is approved, we will initiate it to the original payment method where supported. The time for the funds to appear depends on the bank, UPI app, card issuer and payment provider. We will communicate if additional information is needed. We do not treat a refund as completed merely because a request has been received.
+
+7. Non-delivery or payment issue
+If payment was debited but no order confirmation was shown, contact us with the transaction reference and approximate payment time. Do not share your UPI PIN, OTP or full payment credentials.
+
+8. Contact and grievance support
+Email: [CUSTOMER SUPPORT EMAIL]
+Business/legal name: [LEGAL BUSINESS NAME]
+Address: [BUSINESS ADDRESS]
+Grievance contact/designation: [NAME AND DESIGNATION]`},
+ privacy:{title:'Privacy Policy',content:`Last updated: [DD Month YYYY]
+
+1. Who we are
+This website is operated by [LEGAL BUSINESS NAME], trading as Protectyourself, at [BUSINESS ADDRESS]. Privacy questions can be sent to [PRIVACY CONTACT EMAIL].
+
+2. Information we collect
+When you place an order or contact us, we may collect your name, email address, phone number, delivery address, order details, customer messages and transaction references needed to process the request.
+
+3. Payments
+Payments are processed through Razorpay and its payment partners. We do not ask you to send your UPI PIN, OTP or payment password to us, and this website should not store your full card number or UPI PIN. Payment providers may process information under their own privacy terms.
+
+4. How we use information
+We use information to process and deliver orders, confirm payments, provide customer support, prevent fraud, maintain business records, handle returns/refunds, comply with legal obligations and improve the website.
+
+5. Service providers
+We use service providers that support website hosting, database storage, order management, payment processing and communications. They may process information on our behalf as necessary to provide their services and subject to applicable terms and law.
+
+6. Sharing
+We do not sell personal information. We may share relevant information with payment providers, delivery/courier partners, technical service providers, professional advisers or authorities where necessary for the purposes above or as required by law.
+
+7. Retention and security
+We retain information for as long as reasonably necessary for orders, customer service, legal, tax, accounting and dispute-resolution purposes. We use reasonable safeguards, but no internet transmission or storage method can be guaranteed completely secure.
+
+8. Your requests
+Subject to applicable law, you may contact us to request access, correction or deletion of personal information, or to raise a privacy concern. We may need to verify your identity and retain some records where legally required.
+
+9. Children
+Purchases should be made by an adult or with the involvement and permission of a parent/guardian. Please do not submit another person's personal information unless you are authorised to do so.
+
+10. Changes
+We may update this policy and will publish the revised version on this page with an updated date.
+
+11. Contact
+Legal business name: [LEGAL BUSINESS NAME]
+Privacy contact: [PRIVACY CONTACT EMAIL]
+Address: [BUSINESS ADDRESS]
+Grievance contact/designation: [NAME AND DESIGNATION]`},
+ terms:{title:'Terms & Conditions',content:`Last updated: [DD Month YYYY]
+
+1. About these terms
+This website is operated by [LEGAL BUSINESS NAME], trading as Protectyourself, at [BUSINESS ADDRESS]. By using the website or placing an order, you agree to these terms and the applicable policies displayed on the website.
+
+2. Product information
+We make reasonable efforts to describe products and show prices accurately. Colours and appearance may vary by screen and batch. Please review product details, quantities, shipping charges and the final total before placing an order.
+
+3. Orders and payment
+An order request is subject to confirmation and availability. Payment status is confirmed using the payment provider's verification process. A payment attempt alone does not guarantee that an order has been accepted. We may contact you to resolve an issue with an order.
+
+4. Prices and availability
+Prices and stock availability may change. The price and applicable charges displayed at checkout before payment apply to the order, subject to correction of an obvious error in accordance with applicable law.
+
+5. Delivery, cancellation and returns
+Delivery estimates, cancellation requests and return/refund requests are handled under the Shipping & Delivery, Order Cancellation and Returns & Refunds policies. Nothing in these terms removes rights that cannot lawfully be excluded.
+
+6. Acceptable use
+You agree not to misuse the website, attempt unauthorised access, interfere with its operation, or submit knowingly false order information.
+
+7. Liability and legal rights
+Nothing in these terms excludes or limits any liability or consumer right that cannot be excluded under applicable law. Any other limitation will apply only to the extent permitted by law.
+
+8. Changes
+We may update these terms by publishing a revised version with an updated date.
+
+9. Contact
+Email: [CUSTOMER SUPPORT EMAIL]
+Legal business name: [LEGAL BUSINESS NAME]
+Address: [BUSINESS ADDRESS]`}
+};
+async function loadPolicy(){
+ const key=$('policyKey').value;
+ const {data,error}=await supabase.from('site_policies').select('policy_key,title,content,is_published').eq('policy_key',key).maybeSingle();
+ if(error){setStatus('policyStatus','Could not load policies: '+error.message+'. Run the supplied site-policies.sql migration, then retry.','error');return}
+ const p=data||policyDefaults[key];currentPolicy=key;
+ $('policyTitle').value=p.title;$('policyContent').value=p.content;$('policyPublished').checked=!!p.is_published;
+ setStatus('policyStatus',data?'Loaded saved policy.': 'Draft template loaded. Review placeholders before publishing.','');
+}
+$('policyKey')?.addEventListener('change',loadPolicy);
+$('reloadPolicyBtn')?.addEventListener('click',loadPolicy);
+$('policyForm')?.addEventListener('submit',async e=>{
+ e.preventDefault();const key=$('policyKey').value;
+ const row={policy_key:key,title:$('policyTitle').value.trim(),content:$('policyContent').value.trim(),is_published:$('policyPublished').checked,updated_at:new Date().toISOString()};
+ if(!row.title||!row.content){setStatus('policyStatus','Enter a title and policy content.','error');return}
+ if(/\[[A-Z][A-Z \-/]+?\]/.test(row.content)){if(!confirm('This policy still contains bracketed placeholders. Save it as a draft anyway?'))return;if(row.is_published&&!confirm('Publishing with placeholders may expose incomplete business information. Publish anyway?'))return}
+ const {error}=await supabase.from('site_policies').upsert(row,{onConflict:'policy_key'});
+ if(error){setStatus('policyStatus','Could not save policy: '+error.message,'error');return}
+ setStatus('policyStatus',row.is_published?'Policy saved and published.':'Policy saved as draft (not public).','success');
+});
+
 init();
 })();

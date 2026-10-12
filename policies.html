@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101b2d"><title>Store Policies · Protectyourself</title><link rel="stylesheet" href="assets/style.css">
+<style>.policy-shell{max-width:900px;margin:42px auto;padding:0 20px 70px}.policy-intro{color:#687382;font-size:14px}.policy-card{background:#fff;border:1px solid #e5e0d6;padding:24px;margin:18px 0}.policy-card h2{margin-top:0}.policy-content{white-space:pre-wrap;line-height:1.75;font-size:14px}.policy-error{padding:14px;background:#f7f2e5;color:#68532f}.policy-links{display:flex;gap:12px;flex-wrap:wrap}.policy-links a{padding:9px 12px;border:1px solid #ded8cd}</style></head>
+<body>
+<header class="site-header"><a class="brand" href="index.html"><span class="brand-mark">P</span><span>protect<span class="brand-light">yourself</span><small>STORE POLICIES</small></span></a><nav class="nav" style="display:flex"><a href="index.html">Back to website ↗</a></nav></header>
+<main class="policy-shell"><div class="section-kicker">CUSTOMER INFORMATION</div><h1>Store <em>policies.</em></h1><p class="policy-intro">Please review the policies that apply to your purchase. These pages display policies published by the website administrator.</p>
+<div class="policy-links"><a href="#shipping">Shipping & delivery</a><a href="#cancellation">Cancellation</a><a href="#returns_refunds">Returns & refunds</a><a href="#privacy">Privacy</a><a href="#terms">Terms & conditions</a></div>
+<div id="policiesMessage" class="policy-error">Loading published policies…</div><div id="policyList"></div></main>
+<footer class="footer"><p>Protectyourself · Customer policies</p><small>For assistance, use the contact details shown in the published policies.</small></footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/config.js"></script>
+<script>
+(async()=>{
+ const msg=document.getElementById('policiesMessage'),list=document.getElementById('policyList');
+ // Public configuration must be provided by assets/config.js as window.PROTECTYOURSELF_SUPABASE_URL and window.PROTECTYOURSELF_SUPABASE_ANON_KEY.
+ const cfg=window.PROTECTYOURSELF_CONFIG||{};
+ const url=cfg.supabaseUrl||'';
+ const key=cfg.supabasePublishableKey||'';
+ if(!url||!key){msg.textContent='The policy editor is ready, but public display configuration is not wired yet. Please connect this page to the same public Supabase URL and anon/publishable key used by the storefront.';return}
+ try{
+  const client=window.supabase.createClient(url,key);
+  const {data,error}=await client.from('site_policies').select('policy_key,title,content,updated_at').eq('is_published',true).order('policy_key');
+  if(error)throw error;
+  if(!data||!data.length){msg.textContent='No policies have been published yet. Please check back soon.';return}
+  msg.remove();
+  const anchors={shipping:'shipping',cancellation:'cancellation',returns_refunds:'returns_refunds',privacy:'privacy',terms:'terms'};
+  list.innerHTML=data.map(p=>'<section class="policy-card" id="'+(anchors[p.policy_key]||'policy')+'"><h2>'+esc(p.title)+'</h2><div class="policy-content">'+esc(p.content)+'</div><p class="policy-intro">Updated: '+esc(new Date(p.updated_at).toLocaleDateString())+'</p></section>').join('');
+ }catch(e){msg.textContent='Could not load published policies: '+(e.message||String(e));}
+ function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+})();
+</script></body></html>
