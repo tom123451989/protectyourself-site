@@ -1,138 +1,32 @@
 (() => {
   const config = window.PROTECTYOURSELF_CONFIG || {};
-  const menu = document.querySelector('.menu-toggle');
-  const nav = document.querySelector('.nav');
-  if (menu && nav) {
-    menu.addEventListener('click', () => {
-      const open = nav.classList.toggle('open');
-      menu.setAttribute('aria-expanded', String(open));
-    });
-    nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
-      nav.classList.remove('open'); menu.setAttribute('aria-expanded', 'false');
-    }));
-  }
-  const year = document.getElementById('year');
-  if (year) year.textContent = new Date().getFullYear();
-  const email = document.querySelector('.contact-detail b');
-  if (email && config.contactEmail) email.textContent = config.contactEmail;
+  const money = n => new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format(Number(n||0));
+  const safe = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const menu=document.querySelector('.menu-toggle'), nav=document.querySelector('.nav');
+  if(menu&&nav){menu.addEventListener('click',()=>{const open=nav.classList.toggle('open');menu.setAttribute('aria-expanded',String(open));});nav.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{nav.classList.remove('open');menu.setAttribute('aria-expanded','false');}));}
+  const year=document.getElementById('year'); if(year)year.textContent=new Date().getFullYear();
+  const emailNode=document.querySelector('.contact-detail b'); if(emailNode&&config.contactEmail)emailNode.textContent=config.contactEmail;
+  const wa=document.getElementById('whatsappLink'), whatsappDisplay=document.querySelectorAll('.contact-detail b')[1];
+  if(config.whatsappNumber){const href='https://wa.me/'+String(config.whatsappNumber).replace(/\D/g,'');if(wa){wa.href=href;wa.target='_blank';wa.rel='noopener noreferrer';}if(whatsappDisplay)whatsappDisplay.innerHTML='<a href="'+href+'" target="_blank" rel="noopener noreferrer">Chat with us on WhatsApp</a>';}
+  const supabaseReady=Boolean(config.supabaseUrl&&config.supabasePublishableKey);
+  const apiRoot=()=>String(config.supabaseUrl||'').replace(/\/$/,'');
+  const restHeaders=()=>({'apikey':config.supabasePublishableKey,'Content-Type':'application/json'});
+  const setStatus=(id,msg,type='')=>{const el=document.getElementById(id);if(el){el.textContent=msg;el.className='form-note '+type;}};
+  async function loadPublicSettings(){if(!supabaseReady)return;try{const r=await fetch(apiRoot()+'/rest/v1/site_settings?id=eq.1&select=*',{headers:{apikey:config.supabasePublishableKey}});if(!r.ok)return;const rows=await r.json(),s=rows&&rows[0];if(!s)return;if(s.contact_email){const b=document.querySelector('.contact-detail b');if(b)b.textContent=s.contact_email;config.contactEmail=s.contact_email;}const notice=document.getElementById('publicNotice');if(notice&&s.public_notice){notice.hidden=false;notice.textContent=s.public_notice;}const number=String(s.whatsapp_number||'').replace(/\D/g,'');if(number){const href='https://wa.me/'+number;if(wa){wa.href=href;wa.target='_blank';wa.rel='noopener noreferrer';}if(whatsappDisplay)whatsappDisplay.textContent='Chat with us on WhatsApp';}}catch(e){console.warn('Could not load public settings',e);}}
+  const form=document.getElementById('contactForm');
+  if(form)form.addEventListener('submit',async e=>{e.preventDefault();if(!supabaseReady){setStatus('formStatus','Enquiry submission is temporarily unavailable. Please email '+(config.contactEmail||'protectyourselfin@gmail.com')+'.','error');return;}const button=form.querySelector('button[type="submit"]'),d=new FormData(form),name=String(d.get('name')||'').trim(),email=String(d.get('email')||'').trim(),topic=String(d.get('topic')||'General enquiry').trim(),message=String(d.get('message')||'').trim(),consent=d.get('consent')==='on';if(!name||!email||!message||!consent){setStatus('formStatus','Please complete all required fields and consent before submitting.','error');return;}if(button){button.disabled=true;button.textContent='Submitting…';}setStatus('formStatus','Submitting your enquiry securely…');try{const r=await fetch(apiRoot()+'/rest/v1/enquiries',{method:'POST',headers:{...restHeaders(),Prefer:'return=minimal'},body:JSON.stringify({customer_name:name,customer_email:email,customer_phone:null,service_name:topic,message,consent:true,status:'new',payment_status:'unverified'})});if(!r.ok){let detail='';try{const j=await r.json();detail=j.message||j.details||j.hint||'';}catch{}throw new Error(detail||'Request failed ('+r.status+').');}form.reset();setStatus('formStatus','Thank you — your enquiry has been submitted. We will respond using the email address you provided.','success');}catch(err){console.error('Enquiry submission failed:',err);setStatus('formStatus','We could not submit your enquiry. Please email '+(config.contactEmail||'protectyourselfin@gmail.com')+' and try again later.','error');}finally{if(button){button.disabled=false;button.innerHTML='Submit enquiry <span>↗</span>';}}});
 
-  const wa = document.getElementById('whatsappLink');
-  const whatsappDisplay = document.querySelectorAll('.contact-detail b')[1];
-  if (config.whatsappNumber) {
-    const href = 'https://wa.me/' + String(config.whatsappNumber).replace(/\D/g, '');
-    if (wa) { wa.href = href; wa.target = '_blank'; wa.rel = 'noopener noreferrer'; wa.title = 'Chat on WhatsApp'; }
-    if (whatsappDisplay) {
-      whatsappDisplay.textContent = 'Chat with us on WhatsApp';
-      whatsappDisplay.innerHTML = '<a href="' + href + '" target="_blank" rel="noopener noreferrer">Chat with us on WhatsApp</a>';
-    }
-  } else if (wa) { wa.href = '#contact'; wa.title = 'WhatsApp contact will be added soon'; }
-
-  const setStatus = (message, type='') => {
-    const el = document.getElementById('formStatus');
-    if (el) { el.textContent = message; el.className = 'form-note ' + type; }
-  };
-  const restHeaders = () => ({ 'apikey': config.supabasePublishableKey, 'Content-Type': 'application/json' });
-  const supabaseReady = Boolean(config.supabaseUrl && config.supabasePublishableKey);
-
-  async function loadPublicSettings() {
-    if (!supabaseReady) return;
-    try {
-      const url = config.supabaseUrl.replace(/\/$/, '') + '/rest/v1/site_settings?id=eq.1&select=*';
-      const response = await fetch(url, { headers: { apikey: config.supabasePublishableKey } });
-      if (!response.ok) return;
-      const rows = await response.json();
-      const s = rows && rows[0];
-      if (!s) return;
-      if (s.contact_email) {
-        const b = document.querySelector('.contact-detail b');
-        if (b) b.textContent = s.contact_email;
-        config.contactEmail = s.contact_email;
-      }
-      if (s.business_name) document.querySelectorAll('.brand span')[1]?.setAttribute('aria-label', s.business_name);
-      const notice = document.getElementById('publicNotice');
-      if (notice && s.public_notice) { notice.hidden = false; notice.textContent = s.public_notice; }
-      const number = String(s.whatsapp_number || '').replace(/\D/g, '');
-      if (number) {
-        const href = 'https://wa.me/' + number;
-        if (wa) { wa.href = href; wa.target = '_blank'; wa.rel = 'noopener noreferrer'; wa.title = 'Chat on WhatsApp'; }
-        if (whatsappDisplay) { whatsappDisplay.textContent = 'Chat with us on WhatsApp'; }
-      }
-      const indiaUrl = String(s.india_payment_url || '').trim();
-      const paymentLink = document.querySelector('.payment-card .underlined-link');
-      if (paymentLink && indiaUrl && /^https:\/\//i.test(indiaUrl)) {
-        paymentLink.href = indiaUrl; paymentLink.target = '_blank'; paymentLink.rel = 'noopener noreferrer';
-        paymentLink.innerHTML = 'Proceed to payment <span>↗</span>';
-      }
-    } catch (err) {
-      // Public settings are optional; the page remains usable if the API is temporarily unavailable.
-      console.warn('Could not load public site settings.', err);
-    }
-  }
-
-  const form = document.getElementById('contactForm');
-  if (form) form.addEventListener('submit', async e => {
-    e.preventDefault();
-    if (!supabaseReady) {
-      setStatus('Enquiry submission is temporarily unavailable. Please email ' + (config.contactEmail || 'protectyourselfin@gmail.com') + '.', 'error');
-      return;
-    }
-    const button = form.querySelector('button[type="submit"]');
-    const d = new FormData(form);
-    const name = String(d.get('name') || '').trim();
-    const emailValue = String(d.get('email') || '').trim();
-    const topic = String(d.get('topic') || 'General enquiry').trim();
-    const message = String(d.get('message') || '').trim();
-    const consent = d.get('consent') === 'on';
-    if (!name || !emailValue || !message || !consent) {
-      setStatus('Please complete all required fields and consent before submitting.', 'error'); return;
-    }
-    if (message.length > 5000) { setStatus('Please keep your message under 5,000 characters.', 'error'); return; }
-    if (button) { button.disabled = true; button.textContent = 'Submitting…'; }
-    setStatus('Submitting your enquiry securely…');
-    try {
-      const endpoint = config.supabaseUrl.replace(/\/$/, '') + '/rest/v1/enquiries';
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { ...restHeaders(), 'Prefer': 'return=minimal' },
-        body: JSON.stringify({
-          customer_name: name,
-          customer_email: emailValue,
-          customer_phone: null,
-          service_name: topic,
-          message,
-          consent: true,
-          status: 'new',
-          payment_status: 'unverified'
-        })
-      });
-      if (!response.ok) {
-        let detail = '';
-        try { const j = await response.json(); detail = j.message || j.details || j.hint || ''; } catch {}
-        throw new Error(detail || ('Request failed (' + response.status + ').'));
-      }
-      form.reset();
-      setStatus('Thank you — your enquiry has been submitted. We will respond using the email address you provided.', 'success');
-    } catch (err) {
-      console.error('Enquiry submission failed:', err);
-      setStatus('We could not submit your enquiry. Please email ' + (config.contactEmail || 'protectyourselfin@gmail.com') + ' and try again later.', 'error');
-    } finally {
-      if (button) { button.disabled = false; button.innerHTML = 'Submit enquiry <span>↗</span>'; }
-    }
-  });
-
-  document.querySelectorAll('.add-cart').forEach(btn => btn.addEventListener('click', () => {
-    const product = btn.dataset.product;
-    const form = document.getElementById('contactForm');
-    const topic = form?.querySelector('[name="topic"]');
-    const message = form?.querySelector('[name="message"]');
-    if (topic) topic.value = 'Product enquiry';
-    if (message) message.value = 'I am interested in: ' + product + '. Please share availability, product details, delivery and payment information.';
-    const count = document.getElementById('cartCount');
-    if (count) count.textContent = String(Number(count.textContent || 0) + 1);
-    btn.textContent = 'Added to enquiry ✓';
-    document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
-    message?.focus({ preventScroll: true });
-  }));
-
-  loadPublicSettings();
+  // Storefront catalogue and cart
+  const grid=document.getElementById('productGrid'), overlay=document.getElementById('cartOverlay'), cartItemsNode=document.getElementById('cartItems'), cartCount=document.getElementById('cartCount');
+  let products=[],cart=[],productsLoaded=false;try{cart=JSON.parse(localStorage.getItem('protectyourself-cart')||'[]');if(!Array.isArray(cart))cart=[];}catch{cart=[];}
+  const saveCart=()=>{try{localStorage.setItem('protectyourself-cart',JSON.stringify(cart));}catch{}renderCart();};
+  const cartProduct=id=>products.find(p=>p.id===id);
+  function renderProducts(){if(!grid)return;if(!products.length){grid.innerHTML='<p class="catalogue-state">No products are currently published. Please check back soon.</p>';return;}grid.innerHTML=products.map(p=>`<article class="product-card"><div>${p.image_url?`<img class="product-photo" loading="lazy" src="${safe(p.image_url)}" alt="${safe(p.name)}">`:`<div class="product-art product-art-1 product-photo-placeholder" aria-label="No product image">✧</div>`}</div><div class="product-info"><div class="card-meta">${safe(p.category||'COLLECTION')}</div><h3>${safe(p.name)}</h3><p>${safe(p.description||'')}</p>${p.stock_quantity>0?`<div class="card-meta">In stock</div>`:'<div class="card-meta">Available to order</div>'}<div class="product-bottom"><b>${money(p.price_inr)}</b><button class="add-cart" data-add="${safe(p.id)}" ${p.stock_quantity===0?'disabled':''}>Add to cart +</button></div></div></article>`).join('');grid.querySelectorAll('[data-add]').forEach(b=>b.addEventListener('click',()=>{const p=cartProduct(b.dataset.add);if(!p)return;const line=cart.find(x=>x.product_id===p.id);if(line)line.quantity=Math.min(20,line.quantity+1);else cart.push({product_id:p.id,quantity:1});saveCart();b.textContent='Added ✓';setTimeout(()=>{if(b.isConnected)b.textContent='Add to cart +';},1000);}));}
+  function renderCart(){if(cartCount)cartCount.textContent=String(cart.reduce((sum,x)=>sum+Number(x.quantity||0),0));if(!cartItemsNode)return;if(!productsLoaded){const sub=document.getElementById('cartSubtotal');if(sub)sub.textContent='—';cartItemsNode.innerHTML='<p>Loading your saved cart…</p>';return;}cart=cart.filter(x=>cartProduct(x.product_id)&&Number(x.quantity)>0);const total=cart.reduce((sum,x)=>sum+Number(cartProduct(x.product_id).price_inr)*Number(x.quantity),0);const sub=document.getElementById('cartSubtotal');if(sub)sub.textContent=money(total);if(!cart.length){cartItemsNode.innerHTML='<p>Your cart is empty. Add a product from the collection to begin.</p>';return;}cartItemsNode.innerHTML=cart.map(x=>{const p=cartProduct(x.product_id);return `<div class="cart-line">${p.image_url?`<img src="${safe(p.image_url)}" alt="">`:'<div class="cart-thumb">✧</div>'}<div><h4>${safe(p.name)}</h4><small>${money(p.price_inr)} each</small><div class="cart-qty"><button type="button" data-qty="${safe(p.id)}" data-delta="-1" aria-label="Decrease quantity">−</button><span>${x.quantity}</span><button type="button" data-qty="${safe(p.id)}" data-delta="1" aria-label="Increase quantity">+</button><button type="button" data-remove="${safe(p.id)}">Remove</button></div></div><strong>${money(Number(p.price_inr)*Number(x.quantity))}</strong></div>`;}).join('');cartItemsNode.querySelectorAll('[data-qty]').forEach(b=>b.addEventListener('click',()=>{const line=cart.find(x=>x.product_id===b.dataset.qty);if(!line)return;line.quantity+=Number(b.dataset.delta);if(line.quantity<1)cart=cart.filter(x=>x!==line);if(line.quantity>20)line.quantity=20;saveCart();}));cartItemsNode.querySelectorAll('[data-remove]').forEach(b=>b.addEventListener('click',()=>{cart=cart.filter(x=>x.product_id!==b.dataset.remove);saveCart();}));}
+  function openCart(){overlay?.classList.remove('hidden');overlay?.setAttribute('aria-hidden','false');renderCart();}function closeCart(){overlay?.classList.add('hidden');overlay?.setAttribute('aria-hidden','true');}
+  document.getElementById('openCartBtn')?.addEventListener('click',openCart);document.getElementById('closeCartBtn')?.addEventListener('click',closeCart);overlay?.addEventListener('click',e=>{if(e.target===overlay)closeCart();});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeCart();});
+  async function loadProducts(){if(!grid)return;if(!supabaseReady){grid.innerHTML='<p class="catalogue-state">Store connection is not configured.</p>';return;}try{const r=await fetch(apiRoot()+'/rest/v1/products?is_active=eq.true&select=id,name,description,category,price_inr,image_url,stock_quantity&order=created_at.desc',{headers:{apikey:config.supabasePublishableKey}});if(!r.ok)throw new Error('Catalogue request failed ('+r.status+').');products=await r.json();productsLoaded=true;renderProducts();renderCart();}catch(e){console.error('Could not load product catalogue',e);grid.innerHTML='<p class="catalogue-state">We could not load products right now. Please refresh or contact us.</p>';}}
+  const checkoutForm=document.getElementById('checkoutForm');
+  if(checkoutForm)checkoutForm.addEventListener('submit',async e=>{e.preventDefault();const status=document.getElementById('checkoutStatus'),btn=document.getElementById('checkoutBtn');if(!cart.length){setStatus('checkoutStatus','Your cart is empty.','error');return;}if(!supabaseReady){setStatus('checkoutStatus','Checkout is not configured. Please contact the store.','error');return;}if(!window.Razorpay){setStatus('checkoutStatus','Payment checkout could not load. Check your connection and try again.','error');return;}btn.disabled=true;setStatus('checkoutStatus','Creating your secure order…');try{const d=new FormData(checkoutForm),customer={customer_name:String(d.get('customer_name')).trim(),customer_email:String(d.get('customer_email')).trim(),customer_phone:String(d.get('customer_phone')).trim(),address_line1:String(d.get('address_line1')).trim(),city:String(d.get('city')).trim(),state:String(d.get('state')).trim(),postal_code:String(d.get('postal_code')).trim(),country:String(d.get('country')).trim()};const r=await fetch(apiRoot()+'/functions/v1/storefront-checkout',{method:'POST',headers:{...restHeaders(),Authorization:'Bearer '+config.supabasePublishableKey},body:JSON.stringify({action:'create_order',items:cart.map(x=>({product_id:x.product_id,quantity:x.quantity})),customer})});const data=await r.json();if(!r.ok||!data.success)throw new Error(data.error||'Could not create order.');const options={key:data.key_id,amount:data.amount,currency:data.currency, name:config.businessName||'Protectyourself',description:'Protectyourself order '+data.order_number,order_id:data.razorpay_order_id,prefill:{name:customer.customer_name,email:customer.customer_email,contact:customer.customer_phone},notes:{store_order_id:data.order_id},theme:{color:'#101b2d'},handler:async payment=>{setStatus('checkoutStatus','Payment received by checkout. Verifying securely…');try{const vr=await fetch(apiRoot()+'/functions/v1/storefront-checkout',{method:'POST',headers:{...restHeaders(),Authorization:'Bearer '+config.supabasePublishableKey},body:JSON.stringify({action:'verify_payment',order_id:data.order_id,razorpay_order_id:payment.razorpay_order_id,razorpay_payment_id:payment.razorpay_payment_id,razorpay_signature:payment.razorpay_signature})});const vd=await vr.json();if(!vr.ok||!vd.success)throw new Error(vd.error||'Payment verification is pending.');cart=[];saveCart();checkoutForm.reset();setStatus('checkoutStatus','Payment verified. Your order number is '+safe(data.order_number)+'. We will email you with updates.','success');}catch(err){console.error('Payment verification error',err);setStatus('checkoutStatus','Payment was submitted but verification is pending. Save your payment ID and contact support if you do not receive confirmation. Payment ID: '+payment.razorpay_payment_id,'error');}}};const rzp=new window.Razorpay(options);rzp.on('payment.failed',response=>{setStatus('checkoutStatus','Payment did not complete: '+(response.error?.description||'please try again.'),'error');});rzp.open();setStatus('checkoutStatus','Complete payment in the secure payment window.');}catch(err){console.error('Checkout failed',err);setStatus('checkoutStatus',err.message||'Checkout failed. Please try again.','error');}finally{btn.disabled=false;}});
+  loadPublicSettings();loadProducts();renderCart();
 })();
