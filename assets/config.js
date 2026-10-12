@@ -1,8 +1,8 @@
-/* Public configuration only. Never put passwords, API secrets, or private credentials here. */
+/* Public browser configuration only. The publishable key is designed for client-side use with RLS enabled. Never put passwords or sb_secret_ keys here. */
 window.PROTECTYOURSELF_CONFIG = {
+  supabaseUrl: "https://qgsmmvzmvbkicwamptod.supabase.co",
+  supabasePublishableKey: "sb_publishable_KmWRU-Q_yMPY6KGWEWFRHw_UGLE1fu5",
   whatsappNumber: "", // digits only, including country code; leave blank until confirmed
   contactEmail: "protectyourselfin@gmail.com",
-  upiId: "",           // add only a verified public UPI ID if you choose manual UPI payments
-  paymentQrImage: "",  // e.g. assets/payment-qr.png; only add a verified business QR
   businessName: "Protectyourself"
 };
