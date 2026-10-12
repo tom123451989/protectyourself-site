@@ -1,7 +1,7 @@
 (() => {
 const $=id=>document.getElementById(id);
 const configKey='protectyourself-supabase-client-config';
-let supabase=null,session=null,services=[],products=[];
+let supabase=null,session=null,services=[],products=[],orders=[];
 const setStatus=(id,msg,type='')=>{const el=$(id);if(el){el.textContent=msg;el.className='admin-status '+type}};
 const safe=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function readConfig(){try{return JSON.parse(localStorage.getItem(configKey)||'{}')}catch{return {}}}
@@ -20,8 +20,8 @@ $('connectBtn').addEventListener('click',()=>{const url=$('sbUrl').value.trim(),
 $('loginBtn').addEventListener('click',async()=>{if(!supabase){setStatus('loginStatus','Connect Supabase first.','error');return}const email=$('loginEmail').value.trim(),password=$('loginPassword').value;if(!email||!password){setStatus('loginStatus','Enter email and password.','error');return}setStatus('loginStatus','Signing in…');const {data,error}=await supabase.auth.signInWithPassword({email,password});if(error){setStatus('loginStatus',error.message,'error');return}session=data.session;await showDashboard()});
 $('signOutBtn').addEventListener('click',async()=>{if(supabase)await supabase.auth.signOut();session=null;setConnectedUI(false);$('setupPanel').classList.remove('hidden');$('loginPanel').classList.remove('hidden')});
 if(window.supabase){/* initialized after config is loaded */}
-document.querySelectorAll('.admin-tabs button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.admin-tabs button').forEach(b=>b.classList.toggle('active',b===btn));document.querySelectorAll('.tab-content').forEach(p=>p.classList.toggle('hidden',p.id!==btn.dataset.tab));if(btn.dataset.tab==='productsTab')loadProducts();if(btn.dataset.tab==='bookingsTab')loadBookings();if(btn.dataset.tab==='settingsTab')loadSettings()}));
-async function showDashboard(){setConnectedUI(true);setStatus('loginStatus','Signed in successfully.','success');await loadServices();await loadProducts();await loadSettings();await loadBookings()}
+document.querySelectorAll('.admin-tabs button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.admin-tabs button').forEach(b=>b.classList.toggle('active',b===btn));document.querySelectorAll('.tab-content').forEach(p=>p.classList.toggle('hidden',p.id!==btn.dataset.tab));if(btn.dataset.tab==='productsTab')loadProducts();if(btn.dataset.tab==='ordersTab')loadOrders();if(btn.dataset.tab==='bookingsTab')loadBookings();if(btn.dataset.tab==='settingsTab')loadSettings()}));
+async function showDashboard(){setConnectedUI(true);setStatus('loginStatus','Signed in successfully.','success');await loadServices();await loadProducts();await loadOrders();await loadSettings();await loadBookings()}
 async function loadServices(){const {data,error}=await supabase.from('services').select('*').order('created_at',{ascending:true});if(error){$('servicesRows').innerHTML='<tr><td colspan="5">Could not load services: '+safe(error.message)+'</td></tr>';setStatus('serviceStatus','Check that you ran supabase-schema.sql and are signed in as an admin.','error');return}services=data||[];$('statServices').textContent=services.length;renderServices()}
 function renderServices(){$('servicesRows').innerHTML=services.length?services.map(s=>`<tr><td><b>${safe(s.name)}</b><br>${safe(s.description||'')}</td><td>₹${safe(s.price_inr)}</td><td>$${safe(s.price_usd)}</td><td>${s.is_active?'Published':'Hidden'}</td><td><button class="admin-btn secondary" data-edit="${safe(s.id)}">Edit</button><button class="admin-btn danger" data-delete="${safe(s.id)}">Delete</button></td></tr>`).join(''):'<tr><td colspan="5">No services yet. Use the form above to add one.</td></tr>';
  $('servicesRows').querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>{const s=services.find(x=>x.id===b.dataset.edit);if(!s)return;$('serviceId').value=s.id;$('serviceName').value=s.name;$('serviceDescription').value=s.description||'';$('priceInr').value=s.price_inr;$('priceUsd').value=s.price_usd;$('serviceActive').value=String(s.is_active);window.scrollTo({top:0,behavior:'smooth'})}));
@@ -48,7 +48,53 @@ $('productForm').addEventListener('submit',async e=>{e.preventDefault();const id
 });
 function clearProductForm(){$('productForm').reset();$('productId').value='';$('productStock').value='50';$('productActive').value='true';}
 $('clearProductBtn').addEventListener('click',clearProductForm);
-async function loadBookings(){const {data,error}=await supabase.from('enquiries').select('*').order('created_at',{ascending:false}).limit(200);if(error){$('bookingsRows').innerHTML='<tr><td colspan="7">Could not load records: '+safe(error.message)+'</td></tr>';setStatus('bookingStatus','If the table is missing, run the supplied SQL schema. Existing Google Form entries are not automatically imported.','error');return}const rows=data||[];$('statBookings').textContent=rows.length;$('statPaid').textContent=rows.filter(r=>r.payment_status==='paid').length;$('bookingsRows').innerHTML=rows.length?rows.map(r=>`<tr><td>${safe(new Date(r.created_at).toLocaleDateString())}</td><td>${safe(r.customer_name)}</td><td>${safe(r.customer_email)}<br>${safe(r.customer_phone||'')}</td><td>${safe(r.service_name)}<br>${safe(r.message||'')}</td><td>${safe(r.payment_reference||'—')}</td><td><span class="badge-status ${r.payment_status==='paid'?'paid':r.status==='cancelled'?'cancelled':''}">${safe(r.status)} / ${safe(r.payment_status)}</span></td><td><select data-status="${safe(r.id)}"><option ${r.status==='new'?'selected':''}>new</option><option ${r.status==='contacted'?'selected':''}>contacted</option><option ${r.status==='in_progress'?'selected':''}>in_progress</option><option ${r.status==='completed'?'selected':''}>completed</option><option ${r.status==='cancelled'?'selected':''}>cancelled</option></select><select data-payment="${safe(r.id)}"><option ${r.payment_status==='unverified'?'selected':''}>unverified</option><option ${r.payment_status==='pending'?'selected':''}>pending</option><option ${r.payment_status==='paid'?'selected':''}>paid</option><option ${r.payment_status==='refunded'?'selected':''}>refunded</option></select><button class="admin-btn" data-save-booking="${safe(r.id)}">Save</button></td></tr>`).join(''):'<tr><td colspan="7">No enquiries in the database yet.</td></tr>';
+async function loadOrders(){
+  setStatus('ordersStatus','Loading orders…');
+  const {data,error}=await supabase.from('orders').select('id,order_number,customer_name,customer_email,customer_phone,address_line1,city,state,postal_code,country,currency,subtotal_inr,shipping_inr,total_inr,payment_status,order_status,razorpay_order_id,razorpay_payment_id,created_at,updated_at').order('created_at',{ascending:false}).limit(500);
+  if(error){
+    $('ordersRows').innerHTML='<tr><td colspan="7">Could not load orders: '+safe(error.message)+'</td></tr>';
+    setStatus('ordersStatus','Check SELECT permission for the authenticated admin on public.orders. No payment or order data was changed.','error');
+    $('statPaid').textContent='—';
+    return;
+  }
+  orders=data||[];
+  $('statPaid').textContent=orders.filter(o=>String(o.payment_status||'').toLowerCase()==='paid').length;
+  renderOrders();
+  setStatus('ordersStatus',orders.length?`Loaded ${orders.length} order(s).`:'No orders found in public.orders.','success');
+}
+function renderOrders(){
+  const statusOptions=['new','processing','shipped','delivered','completed','cancelled'];
+  $('ordersRows').innerHTML=orders.length?orders.map(o=>{
+    const addr=[o.address_line1,o.city,o.state,o.postal_code,o.country].filter(Boolean).join(', ');
+    const status=String(o.order_status||'new');
+    const options=[...new Set([...statusOptions,status])].map(s=>`<option value="${safe(s)}" ${s===status?'selected':''}>${safe(s)}</option>`).join('');
+    return `<tr>
+      <td><b>${safe(o.order_number||o.id)}</b><br>${safe(o.created_at?new Date(o.created_at).toLocaleString():'')}</td>
+      <td>${safe(o.customer_name||'—')}<br>${safe(o.customer_email||'')}<br>${safe(o.customer_phone||'')}</td>
+      <td>${safe(addr||'—')}</td>
+      <td><b>${safe(o.currency||'INR')} ${safe(Number(o.total_inr||0).toFixed(2))}</b><br><small>Subtotal: ${safe(Number(o.subtotal_inr||0).toFixed(2))}; shipping: ${safe(Number(o.shipping_inr||0).toFixed(2))}</small></td>
+      <td><span class="badge-status ${String(o.payment_status).toLowerCase()==='paid'?'paid':''}">${safe(o.payment_status||'unknown')}</span><br><small>Payment: ${safe(o.razorpay_payment_id||'—')}</small></td>
+      <td><select data-order-status="${safe(o.id)}">${options}</select></td>
+      <td><button class="admin-btn" data-save-order="${safe(o.id)}">Save status</button></td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="7">No customer orders found.</td></tr>';
+  $('ordersRows').querySelectorAll('[data-save-order]').forEach(button=>button.addEventListener('click',async()=>{
+    const id=button.dataset.saveOrder;
+    const order=orders.find(o=>String(o.id)===id);
+    const select=$('ordersRows').querySelector(`[data-order-status="${id}"]`);
+    if(!order||!select)return;
+    const nextStatus=select.value;
+    if(!confirm(`Update order ${order.order_number||order.id} status to "${nextStatus}"? This does not change payment status.`))return;
+    button.disabled=true;
+    const {error}=await supabase.from('orders').update({order_status:nextStatus,updated_at:new Date().toISOString()}).eq('id',id);
+    button.disabled=false;
+    if(error){setStatus('ordersStatus','Could not update order status: '+error.message,'error');return}
+    setStatus('ordersStatus',`Order ${order.order_number||order.id} updated to ${nextStatus}. Payment status was not changed.`,'success');
+    await loadOrders();
+  }));
+}
+$('refreshOrdersBtn')?.addEventListener('click',loadOrders);
+async function loadBookings(){const {data,error}=await supabase.from('enquiries').select('*').order('created_at',{ascending:false}).limit(200);if(error){$('bookingsRows').innerHTML='<tr><td colspan="7">Could not load records: '+safe(error.message)+'</td></tr>';setStatus('bookingStatus','If the table is missing, run the supplied SQL schema. Existing Google Form entries are not automatically imported.','error');return}const rows=data||[];$('statBookings').textContent=rows.length;$('bookingsRows').innerHTML=rows.length?rows.map(r=>`<tr><td>${safe(new Date(r.created_at).toLocaleDateString())}</td><td>${safe(r.customer_name)}</td><td>${safe(r.customer_email)}<br>${safe(r.customer_phone||'')}</td><td>${safe(r.service_name)}<br>${safe(r.message||'')}</td><td>${safe(r.payment_reference||'—')}</td><td><span class="badge-status ${r.payment_status==='paid'?'paid':r.status==='cancelled'?'cancelled':''}">${safe(r.status)} / ${safe(r.payment_status)}</span></td><td><select data-status="${safe(r.id)}"><option ${r.status==='new'?'selected':''}>new</option><option ${r.status==='contacted'?'selected':''}>contacted</option><option ${r.status==='in_progress'?'selected':''}>in_progress</option><option ${r.status==='completed'?'selected':''}>completed</option><option ${r.status==='cancelled'?'selected':''}>cancelled</option></select><select data-payment="${safe(r.id)}"><option ${r.payment_status==='unverified'?'selected':''}>unverified</option><option ${r.payment_status==='pending'?'selected':''}>pending</option><option ${r.payment_status==='paid'?'selected':''}>paid</option><option ${r.payment_status==='refunded'?'selected':''}>refunded</option></select><button class="admin-btn" data-save-booking="${safe(r.id)}">Save</button></td></tr>`).join(''):'<tr><td colspan="7">No enquiries in the database yet.</td></tr>';
  $('bookingsRows').querySelectorAll('[data-save-booking]').forEach(b=>b.addEventListener('click',async()=>{const id=b.dataset.saveBooking;const status=$('bookingsRows').querySelector(`[data-status="${id}"]`).value;const payment_status=$('bookingsRows').querySelector(`[data-payment="${id}"]`).value;const {error}=await supabase.from('enquiries').update({status,payment_status}).eq('id',id);if(error){setStatus('bookingStatus',error.message,'error');return}setStatus('bookingStatus','Record updated. Only mark paid after verifying payment through your provider/bank.','success');await loadBookings()}))}
 async function loadSettings(){const {data,error}=await supabase.from('site_settings').select('*').eq('id',1).maybeSingle();if(error){setStatus('settingsStatus',error.message,'error');return}const s=data||{};$('settingBusinessName').value=s.business_name||'Protectyourself';$('settingEmail').value=s.contact_email||'protectyourselfin@gmail.com';$('settingWhatsapp').value=s.whatsapp_number||'';$('settingIndiaPayment').value=s.india_payment_url||'';$('settingIntlPayment').value=s.international_payment_url||'';$('settingBookingUrl').value=s.booking_form_url||'';$('settingNotice').value=s.public_notice||''}
 $('settingsForm').addEventListener('submit',async e=>{e.preventDefault();const row={id:1,business_name:$('settingBusinessName').value.trim(),contact_email:$('settingEmail').value.trim(),whatsapp_number:$('settingWhatsapp').value.trim(),india_payment_url:$('settingIndiaPayment').value.trim(),international_payment_url:$('settingIntlPayment').value.trim(),booking_form_url:$('settingBookingUrl').value.trim(),public_notice:$('settingNotice').value.trim()};const {error}=await supabase.from('site_settings').upsert(row);if(error){setStatus('settingsStatus',error.message,'error');return}setStatus('settingsStatus','Settings saved in Supabase. Website display integration must also be enabled in the public pages.','success')});
