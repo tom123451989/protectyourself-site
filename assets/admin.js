@@ -1,7 +1,7 @@
 (() => {
 const $=id=>document.getElementById(id);
 const configKey='protectyourself-supabase-client-config';
-let supabase=null,session=null,services=[],products=[],orders=[],currentPolicy=null;
+let supabase=null,session=null,services=[],products=[],orders=[],currentPolicy=null,articles=[];
 const setStatus=(id,msg,type='')=>{const el=$(id);if(el){el.textContent=msg;el.className='admin-status '+type}};
 const safe=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function readConfig(){try{return JSON.parse(localStorage.getItem(configKey)||'{}')}catch{return {}}}
@@ -20,8 +20,8 @@ $('connectBtn').addEventListener('click',()=>{const url=$('sbUrl').value.trim(),
 $('loginBtn').addEventListener('click',async()=>{if(!supabase){setStatus('loginStatus','Connect Supabase first.','error');return}const email=$('loginEmail').value.trim(),password=$('loginPassword').value;if(!email||!password){setStatus('loginStatus','Enter email and password.','error');return}setStatus('loginStatus','Signing in…');const {data,error}=await supabase.auth.signInWithPassword({email,password});if(error){setStatus('loginStatus',error.message,'error');return}session=data.session;await showDashboard()});
 $('signOutBtn').addEventListener('click',async()=>{if(supabase)await supabase.auth.signOut();session=null;setConnectedUI(false);$('setupPanel').classList.remove('hidden');$('loginPanel').classList.remove('hidden')});
 if(window.supabase){/* initialized after config is loaded */}
-document.querySelectorAll('.admin-tabs button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.admin-tabs button').forEach(b=>b.classList.toggle('active',b===btn));document.querySelectorAll('.tab-content').forEach(p=>p.classList.toggle('hidden',p.id!==btn.dataset.tab));if(btn.dataset.tab==='productsTab')loadProducts();if(btn.dataset.tab==='ordersTab')loadOrders();if(btn.dataset.tab==='bookingsTab')loadBookings();if(btn.dataset.tab==='policiesTab')loadPolicy();if(btn.dataset.tab==='settingsTab')loadSettings();if(btn.dataset.tab==='customizationTab')loadCustomization()}));
-async function showDashboard(){setConnectedUI(true);setStatus('loginStatus','Signed in successfully.','success');await loadServices();await loadProducts();await loadOrders();await loadSettings();await loadBookings();await loadCustomization()}
+document.querySelectorAll('.admin-tabs button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.admin-tabs button').forEach(b=>b.classList.toggle('active',b===btn));document.querySelectorAll('.tab-content').forEach(p=>p.classList.toggle('hidden',p.id!==btn.dataset.tab));if(btn.dataset.tab==='productsTab')loadProducts();if(btn.dataset.tab==='ordersTab')loadOrders();if(btn.dataset.tab==='bookingsTab')loadBookings();if(btn.dataset.tab==='policiesTab')loadPolicy();if(btn.dataset.tab==='settingsTab')loadSettings();if(btn.dataset.tab==='customizationTab')loadCustomization();if(btn.dataset.tab==='articlesTab')loadArticles()}));
+async function showDashboard(){setConnectedUI(true);setStatus('loginStatus','Signed in successfully.','success');await loadServices();await loadProducts();await loadOrders();await loadSettings();await loadBookings();await loadCustomization();await loadArticles()}
 async function loadServices(){const {data,error}=await supabase.from('services').select('*').order('created_at',{ascending:true});if(error){$('servicesRows').innerHTML='<tr><td colspan="5">Could not load services: '+safe(error.message)+'</td></tr>';setStatus('serviceStatus','Check that you ran supabase-schema.sql and are signed in as an admin.','error');return}services=data||[];$('statServices').textContent=services.length;renderServices()}
 function renderServices(){$('servicesRows').innerHTML=services.length?services.map(s=>`<tr><td><b>${safe(s.name)}</b><br>${safe(s.description||'')}</td><td>₹${safe(s.price_inr)}</td><td>$${safe(s.price_usd)}</td><td>${s.is_active?'Published':'Hidden'}</td><td><button class="admin-btn secondary" data-edit="${safe(s.id)}">Edit</button><button class="admin-btn danger" data-delete="${safe(s.id)}">Delete</button></td></tr>`).join(''):'<tr><td colspan="5">No services yet. Use the form above to add one.</td></tr>';
  $('servicesRows').querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>{const s=services.find(x=>x.id===b.dataset.edit);if(!s)return;$('serviceId').value=s.id;$('serviceName').value=s.name;$('serviceDescription').value=s.description||'';$('priceInr').value=s.price_inr;$('priceUsd').value=s.price_usd;$('serviceActive').value=String(s.is_active);window.scrollTo({top:0,behavior:'smooth'})}));
@@ -261,6 +261,40 @@ $('policyForm')?.addEventListener('submit',async e=>{
  setStatus('policyStatus',row.is_published?'Policy saved and published.':'Policy saved as draft (not public).','success');
 });
 
+
+// Journal and article publishing
+function slugify(value){return String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,180)}
+$('articleTitle')?.addEventListener('input',()=>{if(!$('articleId').value||!$('articleSlug').dataset.edited)$('articleSlug').value=slugify($('articleTitle').value)});
+$('articleSlug')?.addEventListener('input',()=>{$('articleSlug').dataset.edited='true';$('articleSlug').value=slugify($('articleSlug').value)});
+function clearArticleForm(){ $('articleForm')?.reset();$('articleId').value='';$('articleReadTime').value='4';$('articlePublished').value='false';$('articleFeatured').value='true';$('articleSlug').dataset.edited='';$('saveArticleBtn').textContent='Save article'; }
+async function loadArticles(){
+ if(!supabase||!session)return;
+ const {data,error}=await supabase.from('journal_articles').select('*').order('created_at',{ascending:false});
+ if(error){$('articlesRows').innerHTML='<tr><td colspan="5">Could not load articles: '+safe(error.message)+'</td></tr>';setStatus('articleStatus','If this is the first setup, run journal-articles-migration.sql in your Supabase SQL Editor.','error');return}
+ articles=data||[];renderArticles();
+}
+function renderArticles(){
+ const body=$('articlesRows');if(!body)return;
+ body.innerHTML=articles.length?articles.map(a=>`<tr><td><b>${safe(a.title)}</b><br><small>${safe(a.slug)}</small><br><span>${safe(a.excerpt||'')}</span></td><td>${safe(a.category||'General')}</td><td>${a.is_published?'<span class="badge-status paid">Published</span>':'<span class="badge-status">Draft</span>'}</td><td>${a.is_featured?'Yes':'No'}</td><td><button class="admin-btn secondary" data-article-edit="${safe(a.id)}">Edit</button><button class="admin-btn secondary" data-article-toggle="${safe(a.id)}">${a.is_published?'Unpublish':'Publish'}</button><button class="admin-btn danger" data-article-delete="${safe(a.id)}">Delete</button></td></tr>`).join(''):'<tr><td colspan="5">No articles found. Use the form above to create your first article.</td></tr>';
+ body.querySelectorAll('[data-article-edit]').forEach(b=>b.addEventListener('click',()=>{const a=articles.find(x=>String(x.id)===b.dataset.articleEdit);if(!a)return;$('articleId').value=a.id;$('articleTitle').value=a.title||'';$('articleSlug').value=a.slug||'';$('articleSlug').dataset.edited='true';$('articleCategory').value=a.category||'General';$('articleReadTime').value=a.read_time_minutes||4;$('articleExcerpt').value=a.excerpt||'';$('articleContent').value=a.content||'';$('articlePublished').value=String(!!a.is_published);$('articleFeatured').value=String(a.is_featured!==false);$('saveArticleBtn').textContent='Update article';setStatus('articleStatus','Editing “'+a.title+'”.','success');$('articleForm').scrollIntoView({behavior:'smooth',block:'start'});}));
+ body.querySelectorAll('[data-article-toggle]').forEach(b=>b.addEventListener('click',async()=>{const a=articles.find(x=>String(x.id)===b.dataset.articleToggle);if(!a)return;const next=!a.is_published;if(next&&!a.content?.trim()){setStatus('articleStatus','Add the full article content before publishing.','error');return}const row={is_published:next,published_at:next?(a.published_at||new Date().toISOString()):null,updated_at:new Date().toISOString()};const {error}=await supabase.from('journal_articles').update(row).eq('id',a.id);if(error){setStatus('articleStatus','Could not change publication status: '+error.message,'error');return}setStatus('articleStatus',next?'Article published.':'Article returned to draft.','success');await loadArticles();}));
+ body.querySelectorAll('[data-article-delete]').forEach(b=>b.addEventListener('click',async()=>{const a=articles.find(x=>String(x.id)===b.dataset.articleDelete);if(!a||!confirm('Permanently delete “'+a.title+'”? This cannot be undone.'))return;const {error}=await supabase.from('journal_articles').delete().eq('id',a.id);if(error){setStatus('articleStatus','Could not delete article: '+error.message,'error');return}if($('articleId').value===String(a.id))clearArticleForm();setStatus('articleStatus','Article deleted.','success');await loadArticles();}));
+}
+$('clearArticleBtn')?.addEventListener('click',()=>{clearArticleForm();setStatus('articleStatus','Ready for a new article.','success')});
+$('articleForm')?.addEventListener('submit',async e=>{
+ e.preventDefault();if(!supabase||!session){setStatus('articleStatus','Please sign in first.','error');return}
+ const title=$('articleTitle').value.trim(),slug=slugify($('articleSlug').value||title),content=$('articleContent').value.trim(),published=$('articlePublished').value==='true';
+ if(!title||!slug||!content){setStatus('articleStatus','Title, URL slug, and full article content are required.','error');return}
+ const btn=$('saveArticleBtn');btn.disabled=true;btn.textContent='Saving…';
+ try{
+  const id=$('articleId').value;const old=articles.find(a=>String(a.id)===String(id));
+  const row={title,slug,category:$('articleCategory').value.trim()||'General',read_time_minutes:Number($('articleReadTime').value)||4,excerpt:$('articleExcerpt').value.trim(),content,is_published:published,is_featured:$('articleFeatured').value==='true',published_at:published?(old?.published_at||new Date().toISOString()):null,updated_at:new Date().toISOString()};
+  const result=id?await supabase.from('journal_articles').update(row).eq('id',id):await supabase.from('journal_articles').insert(row);
+  if(result.error)throw result.error;
+  setStatus('articleStatus',published?'Article saved and published.':'Article saved as a draft.','success');clearArticleForm();await loadArticles();
+ }catch(err){setStatus('articleStatus','Could not save article: '+(err.message||String(err)),'error')}
+ finally{btn.disabled=false;btn.textContent=$('articleId').value?'Update article':'Save article'}
+});
 
 // Homepage design and slideshow customization
 let savedCustomization = {};

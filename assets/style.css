@@ -24,14 +24,12 @@
 .hero-slideshow[data-transition="slide"] .hero-slide.is-active{transform:translateX(0)}
 .hero-slideshow[data-transition="slide"] .hero-slide:not(.is-active){transform:translateX(-100%)}
 
-/* Keep complete slideshow images visible without changing hero layout */
-.hero-slide {
-  object-fit: contain;
-  object-position: center center;
-  background-color: #101b2d;
-  transform: none;
-}
 
-.hero-slide.is-active {
-  transform: none;
-}
+/* Admin-managed Journal articles */
+.journal-title-link{color:var(--navy);text-decoration:none}.journal-title-link:hover{color:#a47c3f}.journal-read-link{display:inline-block;margin-top:10px;font-size:11px;font-weight:700;color:var(--navy);text-decoration:none;border-bottom:1px solid #c6b99e;padding-bottom:3px}.journal-grid article>div:last-child{min-width:0}.journal-grid .card-meta{display:block}.article-page{max-width:900px;margin:0 auto;padding:65px 24px 100px}.article-back{display:inline-block;color:#8d7041;text-decoration:none;font-size:12px;margin-bottom:30px}.article-page .article-category{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:#927344;font-weight:700}.article-page h1{font-size:clamp(36px,5vw,58px);margin:14px 0 18px}.article-page .article-excerpt{font-size:18px;line-height:1.7;color:#687382;border-bottom:1px solid var(--line);padding-bottom:28px;margin-bottom:35px}.article-body{font-size:16px;line-height:1.9;color:#344253}.article-body h2,.article-body h3{margin:34px 0 12px}.article-body p{margin:0 0 20px}.article-body ul{margin:0 0 22px;padding-left:25px}.article-body li{margin:7px 0}.article-error{padding:30px;background:var(--ivory);color:#4f5967}.article-meta{font-size:11px;color:#7b8490;margin-bottom:25px}@media(max-width:700px){.article-page{padding:40px 7% 70px}.article-body{font-size:15px}}
+/* Keep complete slideshow artwork visible in the hero frame */
+.hero-slide{object-fit:contain;object-position:center center;background:#101b2d;transform:none}
+.hero-slide.is-active{transform:none}
+.hero-slideshow[data-transition="slide"] .hero-slide{transform:translateX(100%)}
+.hero-slideshow[data-transition="slide"] .hero-slide.is-active{transform:translateX(0)}
+.hero-slideshow[data-transition="slide"] .hero-slide:not(.is-active){transform:translateX(-100%)}
