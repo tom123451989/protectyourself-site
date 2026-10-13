@@ -23,3 +23,15 @@
 .hero-slideshow[data-transition="slide"] .hero-slide{transform:translateX(100%);opacity:1;transition:transform .65s ease}
 .hero-slideshow[data-transition="slide"] .hero-slide.is-active{transform:translateX(0)}
 .hero-slideshow[data-transition="slide"] .hero-slide:not(.is-active){transform:translateX(-100%)}
+
+/* Keep complete slideshow images visible without changing hero layout */
+.hero-slide {
+  object-fit: contain;
+  object-position: center center;
+  background-color: #101b2d;
+  transform: none;
+}
+
+.hero-slide.is-active {
+  transform: none;
+}
