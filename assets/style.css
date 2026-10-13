@@ -5,3 +5,21 @@
 
 /* Ecommerce catalogue and checkout additions */
 #openCartBtn{border:0;cursor:pointer;font:inherit}.catalogue-state{grid-column:1/-1;padding:24px;background:#f7f4ed;color:#5d6570}.product-photo{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;background:#f4f0e8}.product-photo-placeholder{display:flex;align-items:center;justify-content:center;aspect-ratio:4/5;background:linear-gradient(145deg,#f8f4ec,#e6dcc8);font-size:54px;color:#b08b51}.product-card .product-info p{min-height:3.6em}.product-bottom{gap:12px;flex-wrap:wrap}.product-bottom .add-cart{cursor:pointer}.store-overlay{position:fixed;inset:0;background:rgba(10,18,31,.66);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow:auto}.store-overlay.hidden{display:none!important}.store-dialog{position:relative;background:#fff;width:min(720px,100%);padding:32px;box-shadow:0 22px 80px #0003;margin:2vh auto}.store-dialog h2{font-size:34px;margin:8px 0 20px}.store-close{position:absolute;right:18px;top:14px;border:0;background:transparent;font-size:32px;cursor:pointer}.cart-line{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid #ece7de}.cart-line img,.cart-thumb{width:64px;height:72px;object-fit:cover;background:#f4f0e8;display:flex;align-items:center;justify-content:center}.cart-line h4{margin:0 0 4px;font-size:14px}.cart-line small{color:#66707c}.cart-qty{display:flex;align-items:center;gap:8px;margin-top:8px}.cart-qty button{width:27px;height:27px;border:1px solid #ddd;background:white;cursor:pointer}.cart-total{display:flex;justify-content:space-between;padding:18px 0;border-bottom:1px solid #ddd;margin-bottom:20px}.checkout-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.store-dialog label{display:block;font-size:12px;font-weight:600;margin:12px 0}.store-dialog input,.store-dialog select{display:block;width:100%;margin-top:6px;padding:12px;border:1px solid #d8d5cf;font:14px inherit}.store-dialog .inline-check{display:flex;gap:8px;align-items:flex-start}.store-dialog .inline-check input{width:auto;margin-top:2px}.store-dialog button:disabled{opacity:.6;cursor:wait}.product-image-mini{width:54px;height:60px;object-fit:cover;background:#f5f1e8}.admin-image-preview{max-width:150px;max-height:150px;object-fit:contain;display:block;margin-top:8px}.admin-product-form{margin-top:16px}.order-items{white-space:pre-line;min-width:160px}@media(max-width:600px){.store-overlay{padding:10px}.store-dialog{padding:24px 16px}.checkout-grid{grid-template-columns:1fr}.cart-line{grid-template-columns:48px 1fr auto;gap:8px}.cart-line img,.cart-thumb{width:48px;height:58px}.store-dialog h2{font-size:28px}}
+
+
+/* Admin-managed homepage hero slideshow */
+.hero-art{isolation:isolate}
+.hero-slideshow{position:absolute;inset:0;overflow:hidden;z-index:0;background:#17283b}
+.hero-slideshow:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(12,23,39,.04),rgba(12,23,39,.25));pointer-events:none}
+.hero-slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.025);transition:opacity .8s ease,transform 5s ease;display:block}
+.hero-slide.is-active{opacity:1;transform:scale(1)}
+.hero-art .sun[hidden],.hero-art .orbit[hidden],.hero-art .mountain[hidden]{display:none}
+.hero-art .art-caption{z-index:3}
+.hero-slide-dots{position:absolute;z-index:4;right:22px;bottom:44px;display:flex;gap:7px;align-items:center}
+.hero-slide-dots button{width:7px;height:7px;border:1px solid rgba(255,255,255,.8);border-radius:50%;background:transparent;padding:0;cursor:pointer}
+.hero-slide-dots button.is-active{background:#d8b46a;border-color:#d8b46a;transform:scale(1.2)}
+@media(prefers-reduced-motion:reduce){.hero-slide{transition:none}}
+
+.hero-slideshow[data-transition="slide"] .hero-slide{transform:translateX(100%);opacity:1;transition:transform .65s ease}
+.hero-slideshow[data-transition="slide"] .hero-slide.is-active{transform:translateX(0)}
+.hero-slideshow[data-transition="slide"] .hero-slide:not(.is-active){transform:translateX(-100%)}

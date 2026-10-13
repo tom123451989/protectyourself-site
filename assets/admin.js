@@ -20,8 +20,8 @@ $('connectBtn').addEventListener('click',()=>{const url=$('sbUrl').value.trim(),
 $('loginBtn').addEventListener('click',async()=>{if(!supabase){setStatus('loginStatus','Connect Supabase first.','error');return}const email=$('loginEmail').value.trim(),password=$('loginPassword').value;if(!email||!password){setStatus('loginStatus','Enter email and password.','error');return}setStatus('loginStatus','Signing in…');const {data,error}=await supabase.auth.signInWithPassword({email,password});if(error){setStatus('loginStatus',error.message,'error');return}session=data.session;await showDashboard()});
 $('signOutBtn').addEventListener('click',async()=>{if(supabase)await supabase.auth.signOut();session=null;setConnectedUI(false);$('setupPanel').classList.remove('hidden');$('loginPanel').classList.remove('hidden')});
 if(window.supabase){/* initialized after config is loaded */}
-document.querySelectorAll('.admin-tabs button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.admin-tabs button').forEach(b=>b.classList.toggle('active',b===btn));document.querySelectorAll('.tab-content').forEach(p=>p.classList.toggle('hidden',p.id!==btn.dataset.tab));if(btn.dataset.tab==='productsTab')loadProducts();if(btn.dataset.tab==='ordersTab')loadOrders();if(btn.dataset.tab==='bookingsTab')loadBookings();if(btn.dataset.tab==='policiesTab')loadPolicy();if(btn.dataset.tab==='settingsTab')loadSettings()}));
-async function showDashboard(){setConnectedUI(true);setStatus('loginStatus','Signed in successfully.','success');await loadServices();await loadProducts();await loadOrders();await loadSettings();await loadBookings()}
+document.querySelectorAll('.admin-tabs button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.admin-tabs button').forEach(b=>b.classList.toggle('active',b===btn));document.querySelectorAll('.tab-content').forEach(p=>p.classList.toggle('hidden',p.id!==btn.dataset.tab));if(btn.dataset.tab==='productsTab')loadProducts();if(btn.dataset.tab==='ordersTab')loadOrders();if(btn.dataset.tab==='bookingsTab')loadBookings();if(btn.dataset.tab==='policiesTab')loadPolicy();if(btn.dataset.tab==='settingsTab')loadSettings();if(btn.dataset.tab==='customizationTab')loadCustomization()}));
+async function showDashboard(){setConnectedUI(true);setStatus('loginStatus','Signed in successfully.','success');await loadServices();await loadProducts();await loadOrders();await loadSettings();await loadBookings();await loadCustomization()}
 async function loadServices(){const {data,error}=await supabase.from('services').select('*').order('created_at',{ascending:true});if(error){$('servicesRows').innerHTML='<tr><td colspan="5">Could not load services: '+safe(error.message)+'</td></tr>';setStatus('serviceStatus','Check that you ran supabase-schema.sql and are signed in as an admin.','error');return}services=data||[];$('statServices').textContent=services.length;renderServices()}
 function renderServices(){$('servicesRows').innerHTML=services.length?services.map(s=>`<tr><td><b>${safe(s.name)}</b><br>${safe(s.description||'')}</td><td>₹${safe(s.price_inr)}</td><td>$${safe(s.price_usd)}</td><td>${s.is_active?'Published':'Hidden'}</td><td><button class="admin-btn secondary" data-edit="${safe(s.id)}">Edit</button><button class="admin-btn danger" data-delete="${safe(s.id)}">Delete</button></td></tr>`).join(''):'<tr><td colspan="5">No services yet. Use the form above to add one.</td></tr>';
  $('servicesRows').querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>{const s=services.find(x=>x.id===b.dataset.edit);if(!s)return;$('serviceId').value=s.id;$('serviceName').value=s.name;$('serviceDescription').value=s.description||'';$('priceInr').value=s.price_inr;$('priceUsd').value=s.price_usd;$('serviceActive').value=String(s.is_active);window.scrollTo({top:0,behavior:'smooth'})}));
@@ -261,5 +261,117 @@ $('policyForm')?.addEventListener('submit',async e=>{
  setStatus('policyStatus',row.is_published?'Policy saved and published.':'Policy saved as draft (not public).','success');
 });
 
+
+// Homepage design and slideshow customization
+let savedCustomization = {};
+const defaultCustomization = {
+  announcement: "A MORE INTENTIONAL EVERYDAY, STARTS HERE",
+  announcementSub: "Malas · Yantras · Devotional essentials",
+  heroLine1: "Keep your faith close.",
+  heroLine2: "Live with intention.",
+  heroDescription: "Explore malas, yantras, devotional accessories, and spiritual essentials for your personal practice and sacred space.",
+  primaryLabel: "Explore the collection",
+  primaryLink: "#shop",
+  secondaryLabel: "Our philosophy",
+  secondaryLink: "#about",
+  accent: "#d8b46a",
+  interval: 6,
+  transition: "fade",
+  autoplay: true,
+  showDots: true,
+  slides: []
+};
+function currentCustomizationFromForm(){
+ return {
+  announcement:$('customAnnouncement').value.trim(),
+  announcementSub:$('customAnnouncementSub').value.trim(),
+  heroLine1:$('customHeroLine1').value.trim(),
+  heroLine2:$('customHeroLine2').value.trim(),
+  heroDescription:$('customHeroDescription').value.trim(),
+  primaryLabel:$('customPrimaryLabel').value.trim(),
+  primaryLink:$('customPrimaryLink').value.trim()||'#shop',
+  secondaryLabel:$('customSecondaryLabel').value.trim(),
+  secondaryLink:$('customSecondaryLink').value.trim()||'#about',
+  accent:$('customAccent').value||'#d8b46a',
+  interval:Math.max(3,Math.min(30,Number($('customInterval').value)||6)),
+  transition:$('customTransition').value,
+  autoplay:$('customAutoplay').checked,
+  showDots:$('customShowDots').checked,
+  slides:readSlidesEditor()
+ };
+}
+function fillCustomizationForm(c){
+ const v={...defaultCustomization,...(c||{})};
+ ['announcement','announcementSub','heroLine1','heroLine2','heroDescription','primaryLabel','primaryLink','secondaryLabel','secondaryLink','accent','interval','transition'].forEach(k=>{
+  const map={announcement:'customAnnouncement',announcementSub:'customAnnouncementSub',heroLine1:'customHeroLine1',heroLine2:'customHeroLine2',heroDescription:'customHeroDescription',primaryLabel:'customPrimaryLabel',primaryLink:'customPrimaryLink',secondaryLabel:'customSecondaryLabel',secondaryLink:'customSecondaryLink',accent:'customAccent',interval:'customInterval',transition:'customTransition'};
+  const el=$(map[k]);if(el)el.value=v[k]??'';
+ });
+ $('customAutoplay').checked=v.autoplay!==false;
+ $('customShowDots').checked=v.showDots!==false;
+ renderSlidesEditor(Array.isArray(v.slides)?v.slides:[]);
+}
+function renderSlidesEditor(slides){
+ const root=$('slidesEditor');if(!root)return;
+ root.innerHTML='';
+ (slides||[]).forEach((s,i)=>root.appendChild(makeSlideCard(s,i)));
+}
+function makeSlideCard(s={},i=0){
+ const card=document.createElement('div');card.className='slide-editor-card';
+ card.innerHTML=`<div><div class="slide-number">Slide ${i+1}</div><img class="slide-preview" alt="Slide preview" src="${safe(s.image_url||'')}" onerror="this.style.opacity='.25'"><div class="slide-actions"><button class="admin-btn secondary" type="button" data-move="-1">Move up</button><button class="admin-btn secondary" type="button" data-move="1">Move down</button><button class="admin-btn danger" type="button" data-remove>Remove</button></div></div><div class="slide-fields"><label>Image URL (optional)<input data-url type="url" placeholder="https://example.com/image.jpg" value="${safe(s.image_url||'')}"></label><label>Upload image<input data-file type="file" accept="image/jpeg,image/png,image/webp,image/gif"></label><label>Accessible image description<input data-alt maxlength="180" placeholder="e.g. Lord Krishna at sunset" value="${safe(s.alt||'')}"></label><label class="inline-check"><input data-active type="checkbox" ${s.active===false?'':'checked'}> Include in slideshow</label><small class="admin-sub" data-file-status></small></div>`;
+ const img=card.querySelector('.slide-preview'),urlInput=card.querySelector('[data-url]'),fileInput=card.querySelector('[data-file]');
+ urlInput.addEventListener('input',()=>{if(urlInput.value.trim())img.src=urlInput.value.trim()});
+ fileInput.addEventListener('change',()=>{const f=fileInput.files&&fileInput.files[0];if(f){if(f.size>8*1024*1024){fileInput.value='';card.querySelector('[data-file-status]').textContent='File exceeds 8 MB.';return;}img.src=URL.createObjectURL(f);card.querySelector('[data-file-status]').textContent=f.name+' — uploads when you save.';}});
+ card.querySelector('[data-remove]').addEventListener('click',()=>{card.remove();renumberSlideCards()});
+ card.querySelectorAll('[data-move]').forEach(btn=>btn.addEventListener('click',()=>{const cards=[...root.children],idx=cards.indexOf(card),target=idx+Number(btn.dataset.move);if(target<0||target>=cards.length)return;if(target<idx)root.insertBefore(card,cards[target]);else root.insertBefore(cards[target],card);renumberSlideCards()}));
+ return card;
+}
+function renumberSlideCards(){const root=$('slidesEditor');[...root.children].forEach((c,i)=>{const n=c.querySelector('.slide-number');if(n)n.textContent='Slide '+(i+1)});}
+function readSlidesEditor(){
+ return [...$('slidesEditor').children].map(card=>({
+  image_url:card.querySelector('[data-url]').value.trim(),
+  alt:card.querySelector('[data-alt]').value.trim(),
+  active:card.querySelector('[data-active]').checked,
+  _file:card.querySelector('[data-file]').files?.[0]||null
+ }));
+}
+async function loadCustomization(){
+ if(!supabase)return;
+ const {data,error}=await supabase.from('site_customization').select('config').eq('id',1).maybeSingle();
+ if(error){setStatus('customizationStatus','Customization table is not ready. Run site-customization-migration.sql in Supabase SQL Editor. Details: '+error.message,'error');fillCustomizationForm(defaultCustomization);return}
+ savedCustomization={...defaultCustomization,...(data?.config||{})};
+ fillCustomizationForm(savedCustomization);
+ setStatus('customizationStatus','Loaded saved website design.','success');
+}
+$('addSlideBtn')?.addEventListener('click',()=>{const slides=readSlidesEditor().map(({_file,...s})=>s);slides.push({image_url:'',alt:'',active:true});renderSlidesEditor(slides);});
+$('resetCustomizationBtn')?.addEventListener('click',()=>fillCustomizationForm(savedCustomization));
+$('customizationForm')?.addEventListener('submit',async e=>{
+ e.preventDefault();if(!supabase||!session){setStatus('customizationStatus','Please sign in first.','error');return}
+ const btn=e.submitter; if(btn){btn.disabled=true;btn.textContent='Saving…'}
+ try{
+  const cfg=currentCustomizationFromForm();
+  for(let i=0;i<cfg.slides.length;i++){
+   const slide=cfg.slides[i],file=slide._file;delete slide._file;
+   if(file){
+    if(file.size>8*1024*1024)throw new Error('Image '+(i+1)+' exceeds 8 MB.');
+    if(!/^image\/(jpeg|png|webp|gif)$/.test(file.type))throw new Error('Image '+(i+1)+' must be JPG, PNG, WebP or GIF.');
+    const ext=({ 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'})[file.type]||'img';
+    const path='hero/'+Date.now()+'-'+Math.random().toString(36).slice(2,9)+'.'+ext;
+    const {error:upErr}=await supabase.storage.from('site-media').upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type});
+    if(upErr)throw new Error('Upload failed for slide '+(i+1)+': '+upErr.message);
+    const {data:pub}=supabase.storage.from('site-media').getPublicUrl(path);
+    slide.image_url=pub.publicUrl;
+   }
+   if(slide.image_url&&!/^https:\/\//i.test(slide.image_url))throw new Error('Slide '+(i+1)+' needs a public HTTPS image URL.');
+   if(!slide.image_url)slide.active=false;
+  }
+  const {error}=await supabase.from('site_customization').upsert({id:1,config:cfg,updated_at:new Date().toISOString()});
+  if(error)throw error;
+  savedCustomization={...cfg};fillCustomizationForm(savedCustomization);
+  setStatus('customizationStatus','Saved! The public homepage will load the new design.','success');
+ }catch(err){setStatus('customizationStatus','Could not save: '+(err.message||String(err)),'error')}
+ finally{if(btn){btn.disabled=false;btn.textContent='Save and publish design'}}
+});
+
+// Load design editor when opened; leave existing admin features intact.
 init();
 })();
