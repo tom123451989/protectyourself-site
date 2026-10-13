@@ -96,7 +96,17 @@
   function updateCouponDisplay(subtotal){
     const panel=document.getElementById('couponPanel'),discountRow=document.getElementById('couponDiscountRow'),afterRow=document.getElementById('cartAfterDiscountRow'),foot=document.getElementById('couponFootnote');
     if(panel)panel.hidden=!cart.length;
-    if(!appliedCoupon){if(discountRow)discountRow.hidden=true;if(afterRow)afterRow.hidden=true;if(foot)foot.hidden=true;return}
+        if(!appliedCoupon){
+      if(discountRow)discountRow.hidden=false;
+      if(afterRow)afterRow.hidden=false;
+      if(foot)foot.hidden=true;
+      const d=document.getElementById('couponDiscount'),a=document.getElementById('cartAfterDiscount');
+      if(d)d.textContent='−'+money(0);
+      if(a)a.textContent=money(subtotal);
+      const remove=document.getElementById('removeCouponBtn');
+      if(remove)remove.hidden=true;
+      return;
+    }
     const preview=couponPreview(appliedCoupon),status=document.getElementById('couponStatus');
     if(status&&preview.message){status.textContent=preview.message;status.className='form-note error'}
     const discount=preview.discount||0;
