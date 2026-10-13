@@ -33,3 +33,17 @@
 .hero-slideshow[data-transition="slide"] .hero-slide{transform:translateX(100%)}
 .hero-slideshow[data-transition="slide"] .hero-slide.is-active{transform:translateX(0)}
 .hero-slideshow[data-transition="slide"] .hero-slide:not(.is-active){transform:translateX(-100%)}
+
+/* Coupon code controls */
+.coupon-panel{border:1px solid var(--line);background:#fcfbf8;padding:14px 16px;margin:0 0 16px}
+.coupon-panel label{font-size:11px;font-weight:700;display:block;margin:0 0 8px}
+.coupon-entry{display:flex;gap:8px;align-items:stretch}
+.store-dialog .coupon-entry input{flex:1;min-width:0;margin:0;text-transform:uppercase}
+.coupon-apply{padding:10px 16px;white-space:nowrap;font-size:12px}
+.coupon-remove{border:0;background:transparent;color:#8e3939;text-decoration:underline;cursor:pointer;font:600 11px 'DM Sans',sans-serif;padding:8px 0 0}
+.coupon-adjustment{margin-bottom:0;padding:10px 0;border-bottom:0;font-size:13px}
+.coupon-adjustment strong{color:#1d714d}
+.coupon-footnote{margin:-4px 0 16px}
+.admin-panel select[multiple]{min-height:125px}
+.admin-panel small{font-weight:400;color:#6f7883;display:block;margin-top:5px}
+@media(max-width:600px){.coupon-entry{flex-direction:column}.coupon-apply{width:100%}}
