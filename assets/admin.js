@@ -1,7 +1,7 @@
 (() => {
 const $=id=>document.getElementById(id);
 const configKey='protectyourself-supabase-client-config';
-let supabase=null,session=null,services=[],products=[],orders=[],currentPolicy=null,articles=[];
+let supabase=null,session=null,services=[],products=[],orders=[],coupons=[],currentPolicy=null,articles=[];
 const setStatus=(id,msg,type='')=>{const el=$(id);if(el){el.textContent=msg;el.className='admin-status '+type}};
 const safe=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function readConfig(){try{return JSON.parse(localStorage.getItem(configKey)||'{}')}catch{return {}}}
@@ -20,8 +20,8 @@ $('connectBtn').addEventListener('click',()=>{const url=$('sbUrl').value.trim(),
 $('loginBtn').addEventListener('click',async()=>{if(!supabase){setStatus('loginStatus','Connect Supabase first.','error');return}const email=$('loginEmail').value.trim(),password=$('loginPassword').value;if(!email||!password){setStatus('loginStatus','Enter email and password.','error');return}setStatus('loginStatus','Signing in…');const {data,error}=await supabase.auth.signInWithPassword({email,password});if(error){setStatus('loginStatus',error.message,'error');return}session=data.session;await showDashboard()});
 $('signOutBtn').addEventListener('click',async()=>{if(supabase)await supabase.auth.signOut();session=null;setConnectedUI(false);$('setupPanel').classList.remove('hidden');$('loginPanel').classList.remove('hidden')});
 if(window.supabase){/* initialized after config is loaded */}
-document.querySelectorAll('.admin-tabs button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.admin-tabs button').forEach(b=>b.classList.toggle('active',b===btn));document.querySelectorAll('.tab-content').forEach(p=>p.classList.toggle('hidden',p.id!==btn.dataset.tab));if(btn.dataset.tab==='productsTab')loadProducts();if(btn.dataset.tab==='ordersTab')loadOrders();if(btn.dataset.tab==='bookingsTab')loadBookings();if(btn.dataset.tab==='policiesTab')loadPolicy();if(btn.dataset.tab==='settingsTab')loadSettings();if(btn.dataset.tab==='customizationTab')loadCustomization();if(btn.dataset.tab==='articlesTab')loadArticles()}));
-async function showDashboard(){setConnectedUI(true);setStatus('loginStatus','Signed in successfully.','success');await loadServices();await loadProducts();await loadOrders();await loadSettings();await loadBookings();await loadCustomization();await loadArticles()}
+document.querySelectorAll('.admin-tabs button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.admin-tabs button').forEach(b=>b.classList.toggle('active',b===btn));document.querySelectorAll('.tab-content').forEach(p=>p.classList.toggle('hidden',p.id!==btn.dataset.tab));if(btn.dataset.tab==='productsTab')loadProducts();if(btn.dataset.tab==='ordersTab')loadOrders();if(btn.dataset.tab==='couponsTab')loadCoupons();if(btn.dataset.tab==='bookingsTab')loadBookings();if(btn.dataset.tab==='policiesTab')loadPolicy();if(btn.dataset.tab==='settingsTab')loadSettings();if(btn.dataset.tab==='customizationTab')loadCustomization();if(btn.dataset.tab==='articlesTab')loadArticles()}));
+async function showDashboard(){setConnectedUI(true);setStatus('loginStatus','Signed in successfully.','success');await loadServices();await loadProducts();await loadOrders();await loadCoupons();await loadSettings();await loadBookings();await loadCustomization();await loadArticles()}
 async function loadServices(){const {data,error}=await supabase.from('services').select('*').order('created_at',{ascending:true});if(error){$('servicesRows').innerHTML='<tr><td colspan="5">Could not load services: '+safe(error.message)+'</td></tr>';setStatus('serviceStatus','Check that you ran supabase-schema.sql and are signed in as an admin.','error');return}services=data||[];$('statServices').textContent=services.length;renderServices()}
 function renderServices(){$('servicesRows').innerHTML=services.length?services.map(s=>`<tr><td><b>${safe(s.name)}</b><br>${safe(s.description||'')}</td><td>₹${safe(s.price_inr)}</td><td>$${safe(s.price_usd)}</td><td>${s.is_active?'Published':'Hidden'}</td><td><button class="admin-btn secondary" data-edit="${safe(s.id)}">Edit</button><button class="admin-btn danger" data-delete="${safe(s.id)}">Delete</button></td></tr>`).join(''):'<tr><td colspan="5">No services yet. Use the form above to add one.</td></tr>';
  $('servicesRows').querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>{const s=services.find(x=>x.id===b.dataset.edit);if(!s)return;$('serviceId').value=s.id;$('serviceName').value=s.name;$('serviceDescription').value=s.description||'';$('priceInr').value=s.price_inr;$('priceUsd').value=s.price_usd;$('serviceActive').value=String(s.is_active);window.scrollTo({top:0,behavior:'smooth'})}));
@@ -94,6 +94,76 @@ function renderOrders(){
   }));
 }
 $('refreshOrdersBtn')?.addEventListener('click',loadOrders);
+
+// Coupon administration. Database row-level security restricts writes to signed-in admins.
+async function loadCoupons(){
+  const body=$('couponsRows');
+  if(!supabase||!session){if(body)body.innerHTML='<tr><td colspan="6">Sign in as an administrator to load coupons.</td></tr>';return}
+  const {data,error}=await supabase.from('coupons').select('*').order('created_at',{ascending:false});
+  if(error){body.innerHTML='<tr><td colspan="6">Could not load coupons: '+safe(error.message)+'</td></tr>';setStatus('couponStatusAdmin','If this is the first setup, run coupon-management-migration.sql in the Supabase SQL Editor.','error');return}
+  coupons=data||[];renderCoupons();renderCouponProductOptions();
+}
+function renderCouponProductOptions(selected=[]){
+  const select=$('couponProducts');if(!select)return;
+  select.disabled=$('couponProductMode')?.value==='all';
+  const wanted=new Set((selected||[]).map(String));
+  select.innerHTML=products.map(p=>`<option value="${safe(p.id)}" ${wanted.has(String(p.id))?'selected':''}>${safe(p.name)} — ₹${safe(Number(p.price_inr||0).toFixed(2))}${p.is_active?'':' (hidden)'}</option>`).join('');
+}
+function renderCoupons(){
+  const body=$('couponsRows');if(!body)return;
+  body.innerHTML=coupons.length?coupons.map(c=>{
+    const discount=c.discount_type==='percentage'?`${Number(c.discount_value)}% off`:`₹${Number(c.discount_value).toFixed(2)} off`;
+    const dates=[c.starts_at?'From '+new Date(c.starts_at).toLocaleString():'No start date',c.expires_at?'Until '+new Date(c.expires_at).toLocaleString():'No expiry'].join('<br>');
+    const usage=`${Number(c.usage_count||0)} used${c.usage_limit!=null?' / '+Number(c.usage_limit):' / unlimited'}${c.per_customer_limit!=null?'<br>'+Number(c.per_customer_limit)+' per customer':''}`;
+    const scope=c.applies_to_all_products?'All products':`${Array.isArray(c.eligible_product_ids)?c.eligible_product_ids.length:0} selected product(s)`;
+    return `<tr><td><b>${safe(c.code)}</b><br>${safe(discount)}${c.maximum_discount_amount!=null?'<br><small>Max ₹'+safe(Number(c.maximum_discount_amount).toFixed(2))+'</small>':''}<br><small>Min subtotal ₹${safe(Number(c.minimum_order_amount||0).toFixed(2))}</small></td><td>${dates}</td><td>${usage}</td><td>${safe(scope)}${c.first_order_only?'<br>First order only':''}</td><td><span class="badge-status ${c.is_active?'paid':''}">${c.is_active?'Active':'Disabled'}</span></td><td><button class="admin-btn secondary" data-coupon-edit="${safe(c.id)}">Edit</button><button class="admin-btn secondary" data-coupon-toggle="${safe(c.id)}">${c.is_active?'Disable':'Activate'}</button></td></tr>`;
+  }).join(''):'<tr><td colspan="6">No coupons yet. Create one using the form above.</td></tr>';
+  body.querySelectorAll('[data-coupon-edit]').forEach(b=>b.addEventListener('click',()=>{
+    const c=coupons.find(x=>String(x.id)===b.dataset.couponEdit);if(!c)return;
+    $('couponId').value=c.id;$('couponCodeAdmin').value=c.code||'';$('couponActive').value=String(!!c.is_active);
+    $('couponDiscountType').value=c.discount_type||'percentage';$('couponDiscountValue').value=c.discount_value??'';
+    $('couponMinimum').value=c.minimum_order_amount??0;$('couponMaximum').value=c.maximum_discount_amount??'';
+    const localValue=v=>{if(!v)return '';const d=new Date(v);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16)};
+    $('couponStartsAt').value=localValue(c.starts_at);$('couponExpiresAt').value=localValue(c.expires_at);
+    $('couponUsageLimit').value=c.usage_limit??'';$('couponCustomerLimit').value=c.per_customer_limit??'';
+    $('couponProductMode').value=c.applies_to_all_products?'all':'selected';$('couponFirstOrderOnly').checked=!!c.first_order_only;
+    renderCouponProductOptions(c.eligible_product_ids||[]);setStatus('couponStatusAdmin','Editing '+c.code+'.','success');$('saveCouponBtn').textContent='Update coupon';window.scrollTo({top:0,behavior:'smooth'});
+  }));
+  body.querySelectorAll('[data-coupon-toggle]').forEach(b=>b.addEventListener('click',async()=>{
+    const c=coupons.find(x=>String(x.id)===b.dataset.couponToggle);if(!c)return;
+    const {error}=await supabase.from('coupons').update({is_active:!c.is_active,updated_at:new Date().toISOString()}).eq('id',c.id);
+    if(error){setStatus('couponStatusAdmin','Could not change coupon status: '+error.message,'error');return}
+    setStatus('couponStatusAdmin',c.is_active?'Coupon disabled. Its usage history is retained.':'Coupon activated. Confirm checkout backend support before advertising it.','success');await loadCoupons();
+  }));
+}
+function clearCouponForm(){
+  $('couponForm').reset();$('couponId').value='';$('couponActive').value='true';$('couponProductMode').value='all';$('couponMinimum').value='0';
+  renderCouponProductOptions([]);$('saveCouponBtn').textContent='Save coupon';setStatus('couponStatusAdmin','','');
+}
+$('couponProductMode')?.addEventListener('change',()=>{const select=$('couponProducts');if(select)select.disabled=$('couponProductMode').value==='all'});
+$('clearCouponBtn')?.addEventListener('click',clearCouponForm);
+$('couponForm')?.addEventListener('submit',async e=>{
+  e.preventDefault();if(!supabase||!session){setStatus('couponStatusAdmin','Please sign in as an administrator first.','error');return}
+  const id=$('couponId').value,code=$('couponCodeAdmin').value.trim().toUpperCase(),discountType=$('couponDiscountType').value,discountValue=Number($('couponDiscountValue').value),minimum=Number($('couponMinimum').value||0),maximum=$('couponMaximum').value.trim(),usage=$('couponUsageLimit').value.trim(),perCustomer=$('couponCustomerLimit').value.trim();
+  if(!/^[A-Z0-9_-]{3,40}$/.test(code)){setStatus('couponStatusAdmin','Use 3–40 letters, numbers, underscores or hyphens in the coupon code.','error');return}
+  if(!(discountValue>0)||!Number.isFinite(discountValue)||(discountType==='percentage'&&discountValue>100)){setStatus('couponStatusAdmin','Enter a positive discount; percentage discounts cannot exceed 100%.','error');return}
+  if(minimum<0||!Number.isFinite(minimum)){setStatus('couponStatusAdmin','Minimum subtotal cannot be negative.','error');return}
+  if(maximum!==''&&!(Number(maximum)>0)){setStatus('couponStatusAdmin','Maximum discount must be a positive amount or left blank.','error');return}
+  if(usage!==''&&(!Number.isInteger(Number(usage))||Number(usage)<1)){setStatus('couponStatusAdmin','Total usage limit must be a positive whole number or left blank.','error');return}
+  if(perCustomer!==''&&(!Number.isInteger(Number(perCustomer))||Number(perCustomer)<1)){setStatus('couponStatusAdmin','Per-customer limit must be a positive whole number or left blank.','error');return}
+  const starts=$('couponStartsAt').value,expires=$('couponExpiresAt').value;
+  if(starts&&expires&&new Date(starts)>=new Date(expires)){setStatus('couponStatusAdmin','Expiry must be later than the start date.','error');return}
+  const allProducts=$('couponProductMode').value==='all',selected=[...$('couponProducts').selectedOptions].map(o=>o.value);
+  if(!allProducts&&!selected.length){setStatus('couponStatusAdmin','Select at least one product, or choose All active products.','error');return}
+  const row={code,discount_type:discountType,discount_value:discountValue,minimum_order_amount:minimum,maximum_discount_amount:maximum===''?null:Number(maximum),starts_at:starts?new Date(starts).toISOString():null,expires_at:expires?new Date(expires).toISOString():null,usage_limit:usage===''?null:Number(usage),per_customer_limit:perCustomer===''?null:Number(perCustomer),applies_to_all_products:allProducts,eligible_product_ids:allProducts?[]:selected,first_order_only:$('couponFirstOrderOnly').checked,is_active:$('couponActive').value==='true',updated_at:new Date().toISOString()};
+  const button=$('saveCouponBtn');button.disabled=true;
+  try{
+    const result=id?await supabase.from('coupons').update(row).eq('id',id):await supabase.from('coupons').insert(row);
+    if(result.error)throw result.error;
+    setStatus('couponStatusAdmin',id?'Coupon updated.':'Coupon created. Before accepting orders with it, update the checkout Edge Function as documented in COUPON-SETUP.md.','success');clearCouponForm();await loadCoupons();
+  }catch(err){setStatus('couponStatusAdmin','Could not save coupon: '+(err.message||String(err)),'error')}
+  finally{button.disabled=false}
+});
 async function loadBookings(){const {data,error}=await supabase.from('enquiries').select('*').order('created_at',{ascending:false}).limit(200);if(error){$('bookingsRows').innerHTML='<tr><td colspan="7">Could not load records: '+safe(error.message)+'</td></tr>';setStatus('bookingStatus','If the table is missing, run the supplied SQL schema. Existing Google Form entries are not automatically imported.','error');return}const rows=data||[];$('statBookings').textContent=rows.length;$('bookingsRows').innerHTML=rows.length?rows.map(r=>`<tr><td>${safe(new Date(r.created_at).toLocaleDateString())}</td><td>${safe(r.customer_name)}</td><td>${safe(r.customer_email)}<br>${safe(r.customer_phone||'')}</td><td>${safe(r.service_name)}<br>${safe(r.message||'')}</td><td>${safe(r.payment_reference||'—')}</td><td><span class="badge-status ${r.payment_status==='paid'?'paid':r.status==='cancelled'?'cancelled':''}">${safe(r.status)} / ${safe(r.payment_status)}</span></td><td><select data-status="${safe(r.id)}"><option ${r.status==='new'?'selected':''}>new</option><option ${r.status==='contacted'?'selected':''}>contacted</option><option ${r.status==='in_progress'?'selected':''}>in_progress</option><option ${r.status==='completed'?'selected':''}>completed</option><option ${r.status==='cancelled'?'selected':''}>cancelled</option></select><select data-payment="${safe(r.id)}"><option ${r.payment_status==='unverified'?'selected':''}>unverified</option><option ${r.payment_status==='pending'?'selected':''}>pending</option><option ${r.payment_status==='paid'?'selected':''}>paid</option><option ${r.payment_status==='refunded'?'selected':''}>refunded</option></select><button class="admin-btn" data-save-booking="${safe(r.id)}">Save</button></td></tr>`).join(''):'<tr><td colspan="7">No enquiries in the database yet.</td></tr>';
  $('bookingsRows').querySelectorAll('[data-save-booking]').forEach(b=>b.addEventListener('click',async()=>{const id=b.dataset.saveBooking;const status=$('bookingsRows').querySelector(`[data-status="${id}"]`).value;const payment_status=$('bookingsRows').querySelector(`[data-payment="${id}"]`).value;const {error}=await supabase.from('enquiries').update({status,payment_status}).eq('id',id);if(error){setStatus('bookingStatus',error.message,'error');return}setStatus('bookingStatus','Record updated. Only mark paid after verifying payment through your provider/bank.','success');await loadBookings()}))}
 async function loadSettings(){const {data,error}=await supabase.from('site_settings').select('*').eq('id',1).maybeSingle();if(error){setStatus('settingsStatus',error.message,'error');return}const s=data||{};$('settingBusinessName').value=s.business_name||'Protectyourself';$('settingEmail').value=s.contact_email||'protectyourselfin@gmail.com';$('settingWhatsapp').value=s.whatsapp_number||'';$('settingIndiaPayment').value=s.india_payment_url||'';$('settingIntlPayment').value=s.international_payment_url||'';$('settingBookingUrl').value=s.booking_form_url||'';$('settingNotice').value=s.public_notice||''}
