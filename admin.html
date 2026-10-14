@@ -1,21 +1,7 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101b2d"><title>Protectyourself · Admin</title><link rel="stylesheet" href="assets/style.css?v=20261013-coupons">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101b2d"><title>Protectyourself · Admin</title><link rel="stylesheet" href="assets/style.css">
 <style>
 .admin-shell{max-width:1180px;margin:38px auto;padding:0 22px 60px}.admin-top{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}.admin-top h1{font-size:38px;margin:8px 0}.admin-sub{font-size:13px;color:#687382}.admin-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:25px 0}.admin-tabs button{border:1px solid #ded8cd;background:#fff;padding:11px 16px;cursor:pointer;font:600 12px 'DM Sans',sans-serif}.admin-tabs button.active{background:#101b2d;color:#fff;border-color:#101b2d}.admin-panel{background:#fff;border:1px solid #e5e0d6;padding:22px;margin:15px 0}.admin-panel h2{font-size:25px;margin:0 0 8px}.admin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.admin-panel label{display:block;font-size:11px;font-weight:700;margin:13px 0}.admin-panel input,.admin-panel textarea,.admin-panel select{width:100%;display:block;padding:12px;border:1px solid #dedbd4;margin-top:6px;font:13px 'DM Sans',sans-serif}.admin-btn{border:0;background:#101b2d;color:white;padding:12px 16px;font:600 12px 'DM Sans',sans-serif;cursor:pointer;margin:5px 6px 5px 0}.admin-btn.secondary{background:#f4f1e9;color:#263348;border:1px solid #ddd4c3}.admin-btn.danger{background:#9d3434}.admin-notice{padding:13px 15px;background:#f7f2e5;color:#68532f;font-size:12px;margin:18px 0}.admin-status{font-size:12px;margin:12px 0;white-space:pre-wrap}.admin-status.error{color:#a52828}.admin-status.success{color:#1b6a45}.admin-table-wrap{overflow:auto}.admin-table{width:100%;border-collapse:collapse;font-size:12px}.admin-table th,.admin-table td{text-align:left;padding:12px 10px;border-bottom:1px solid #ece7de;vertical-align:top}.admin-table th{color:#8c7043;font-size:10px;letter-spacing:.08em}.admin-table button{font-size:10px;padding:7px}.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.stat{background:#f7f4ed;padding:18px}.stat small{display:block;color:#6f7883;font-size:10px}.stat strong{font-size:28px;font-family:'Playfair Display',serif;font-weight:500}.hidden{display:none!important}.login-card{max-width:480px;margin:55px auto}.login-card .admin-panel{padding:28px}.inline-check{display:flex!important;align-items:center;gap:8px}.inline-check input{width:auto!important;margin:0!important}.badge-status{display:inline-block;padding:4px 7px;background:#f1eadb;font-size:10px}.badge-status.paid{background:#e4f3e9;color:#1e6945}.badge-status.cancelled{background:#f9e5e5;color:#9d3434}@media(max-width:700px){.admin-grid,.stat-grid{grid-template-columns:1fr}.admin-shell{padding:0 14px 40px}.admin-panel{padding:16px}.admin-top h1{font-size:30px}}
-
-
-/* Website customization controls */
-.custom-slides-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:26px 0 12px}
-.custom-slides-head h3{margin:0}
-.slides-editor{display:grid;gap:14px;margin:14px 0 22px}
-.slide-editor-card{border:1px solid #ded8cd;background:#fffdf8;border-radius:14px;padding:16px;display:grid;grid-template-columns:minmax(180px,260px) minmax(0,1fr);gap:16px}
-.slide-editor-card .slide-preview{width:100%;aspect-ratio:16/9;object-fit:cover;background:#17283b;border-radius:9px}
-.slide-editor-card .slide-fields{display:grid;gap:10px;align-content:start}
-.slide-editor-card .slide-actions{display:flex;gap:8px;flex-wrap:wrap}
-.slide-editor-card .inline-check{margin:0}
-.slide-editor-card .slide-number{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#82775f;font-weight:700}
-@media(max-width:700px){.slide-editor-card{grid-template-columns:1fr}.slide-editor-card .slide-preview{max-width:100%}.custom-slides-head{align-items:flex-start;flex-direction:column}}
-
 </style></head>
 <body>
 <header class="site-header"><a class="brand" href="index.html"><span class="brand-mark">P</span><span>protect<span class="brand-light">yourself</span><small>SECURE ADMINISTRATION</small></span></a><nav class="nav" style="display:flex"><a href="index.html">View website ↗</a></nav></header>
@@ -26,116 +12,11 @@
 <section id="loginPanel" class="login-card hidden"><div class="admin-panel"><h2>Admin sign in</h2><p class="admin-sub">Use an account created in Supabase Authentication.</p><label>Email<input id="loginEmail" type="email" autocomplete="username" placeholder="admin@example.com"></label><label>Password<input id="loginPassword" type="password" autocomplete="current-password" placeholder="Your password"></label><button id="loginBtn" class="admin-btn">Sign in</button><div id="loginStatus" class="admin-status" role="status"></div><p class="admin-sub">Create the first admin account in Supabase Dashboard → Authentication → Users. Disable public sign-up if you do not need it.</p></div></section>
 <section id="dashboard" class="hidden">
 <div class="stat-grid"><div class="stat"><small>SERVICE RECORDS</small><strong id="statServices">—</strong></div><div class="stat"><small>ENQUIRIES / BOOKINGS</small><strong id="statBookings">—</strong></div><div class="stat"><small>PAID RECORDS</small><strong id="statPaid">—</strong></div></div>
-<div class="admin-tabs"><button class="active" data-tab="servicesTab">Service</button><button data-tab="productsTab">Products</button><button data-tab="ordersTab">Orders</button><button data-tab="couponsTab">Coupons</button><button data-tab="policiesTab">Policies</button><button data-tab="bookingsTab">Enquiries & bookings</button><button data-tab="settingsTab">Website settings</button><button data-tab="customizationTab">Design & slideshow</button><button data-tab="articlesTab">Journal & articles</button></div>
-<section id="servicesTab" class="admin-panel tab-content"><h2>Service listing</h2><p class="admin-sub">The initial offer is Transcendental Protection. Set the real service details and prices before publishing.</p><form id="serviceForm"><input type="hidden" id="serviceId"><div class="admin-grid"><label>Service name<input id="serviceName" required value="Transcendental Protection"></label><label>Status<select id="serviceActive"><option value="true">Published</option><option value="false">Hidden</option></select></label><label>Price for India (INR)<input id="priceInr" type="number" min="0" step="1" value="500" required></label><label>International price (USD)<input id="priceUsd" type="number" min="0" step="1" value="50" required></label></div><label>Short description<textarea id="serviceDescription" rows="4" required>Remote spiritual protection service delivered personally. Please describe the process and expectations clearly before publishing.</textarea></label><button class="admin-btn" type="submit">Save service</button><button class="admin-btn secondary" type="button" id="clearServiceBtn">Clear form</button><div id="serviceStatus" class="admin-status" role="status"></div></form><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Service</th><th>India</th><th>International</th><th>Status</th><th>Actions</th></tr></thead><tbody id="servicesRows"><tr><td colspan="5">Connect and sign in to load records.</td></tr></tbody></table></div></section>
+<div class="admin-tabs"><button class="active" data-tab="servicesTab">Service</button><button data-tab="productsTab">Products</button><button data-tab="bookingsTab">Enquiries & bookings</button><button data-tab="settingsTab">Website settings</button></div>
+<section id="servicesTab" class="admin-panel tab-content"><h2>Service listing</h2><p class="admin-sub">The initial offer is Transcendental Protection. Set the real service details and prices before publishing.</p><form id="serviceForm"><input type="hidden" id="serviceId"><div class="admin-grid"><label>Service name<input id="serviceName" required value="Transcendental Protection"></label><label>Status<select id="serviceActive"><option value="true">Published</option><option value="false">Hidden</option></select></label><label>Price for India (INR)<input id="priceInr" type="number" min="0" step="1" value="500" required></label><label>International price (USD)<input id="priceUsd" type="number" min="0" step="1" value="50" required></label></div><label>Description<textarea id="serviceDescription" rows="10" maxlength="10000" required aria-describedby="serviceDescriptionHelp">Remote spiritual protection service delivered personally. Please describe the process and expectations clearly before publishing.</textarea><small id="serviceDescriptionHelp" class="admin-sub">Up to 10,000 characters. You may include plain text, YouTube iframe embed code, or ImgBB image embed code. Only supported YouTube and ImgBB embeds will be displayed publicly.</small></label><button class="admin-btn" type="submit">Save service</button><button class="admin-btn secondary" type="button" id="clearServiceBtn">Clear form</button><div id="serviceStatus" class="admin-status" role="status"></div></form><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Service</th><th>India</th><th>International</th><th>Status</th><th>Actions</th></tr></thead><tbody id="servicesRows"><tr><td colspan="5">Connect and sign in to load records.</td></tr></tbody></table></div></section>
 <section id="productsTab" class="admin-panel tab-content hidden"><h2>Product management</h2><p class="admin-sub">Add products, edit details and prices, update stock, or hide products from the public storefront.</p><form id="productForm"><input type="hidden" id="productId"><div class="admin-grid"><label>Product name<input id="productName" required maxlength="180" placeholder="Product name"></label><label>Category<input id="productCategory" maxlength="100" placeholder="e.g. Rudraksha, Puja essentials"></label><label>Selling price (INR)<input id="productPrice" type="number" min="0" step="0.01" required></label><label>Original price (INR)<input id="productOriginalPrice" type="number" min="0" step="0.01" placeholder="Optional crossed-out price"></label><label>Stock quantity<input id="productStock" type="number" min="0" step="1" value="50" required></label><label>Visibility<select id="productActive"><option value="true">Published</option><option value="false">Hidden</option></select></label></div><label>Product image URL<input id="productImage" type="url" placeholder="https://... (public image URL)"></label><label>Description<textarea id="productDescription" rows="4" placeholder="Product description"></textarea></label><button class="admin-btn" type="submit">Save product</button><button class="admin-btn secondary" type="button" id="clearProductBtn">Clear form</button><div id="productStatus" class="admin-status" role="status"></div></form><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Product</th><th>Price</th><th>Stock</th><th>Visibility</th><th>Actions</th></tr></thead><tbody id="productsRows"><tr><td colspan="5">Connect and sign in to load products.</td></tr></tbody></table></div></section>
-<section id="ordersTab" class="admin-panel tab-content hidden"><h2>Customer orders</h2><p class="admin-sub">Orders from the storefront checkout. Payment status is read from the database; this panel only lets you update fulfilment status.</p><button class="admin-btn secondary" type="button" id="refreshOrdersBtn">Refresh orders</button><div id="ordersStatus" class="admin-status" role="status"></div><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Order / date</th><th>Customer</th><th>Shipping address</th><th>Items total</th><th>Payment</th><th>Order status</th><th>Update</th></tr></thead><tbody id="ordersRows"><tr><td colspan="7">Connect and sign in to load orders.</td></tr></tbody></table></div></section>
-<section id="couponsTab" class="admin-panel tab-content hidden">
-  <h2>Coupon management</h2>
-  <p class="admin-sub">Create discount codes, set dates and usage limits, and restrict a coupon to selected products. Run <code>coupon-management-migration.sql</code> in Supabase SQL Editor first. A coupon is not safe to use at checkout until the deployed <code>storefront-checkout</code> Edge Function is updated to validate and apply discounts server-side.</p>
-  <form id="couponForm">
-    <input type="hidden" id="couponId">
-    <div class="admin-grid">
-      <label>Coupon code<input id="couponCodeAdmin" required maxlength="40" pattern="[A-Za-z0-9_-]{3,40}" placeholder="WELCOME10" autocomplete="off"></label>
-      <label>Status<select id="couponActive"><option value="true">Active</option><option value="false">Disabled</option></select></label>
-      <label>Discount type<select id="couponDiscountType"><option value="percentage">Percentage (%)</option><option value="fixed">Fixed amount (₹)</option></select></label>
-      <label>Discount value<input id="couponDiscountValue" type="number" required min="0.01" step="0.01" placeholder="10"></label>
-      <label>Minimum eligible subtotal (₹)<input id="couponMinimum" type="number" min="0" step="0.01" value="0" required></label>
-      <label>Maximum discount (₹; optional)<input id="couponMaximum" type="number" min="0.01" step="0.01" placeholder="e.g. 500 for 10% off"></label>
-      <label>Starts at (optional)<input id="couponStartsAt" type="datetime-local"></label>
-      <label>Expires at (optional)<input id="couponExpiresAt" type="datetime-local"></label>
-      <label>Total successful uses allowed (blank = unlimited)<input id="couponUsageLimit" type="number" min="1" step="1" placeholder="e.g. 100"></label>
-      <label>Uses per customer (blank = unlimited)<input id="couponCustomerLimit" type="number" min="1" step="1" placeholder="e.g. 1"></label>
-      <label>Products eligible<select id="couponProductMode"><option value="all">All active products</option><option value="selected">Selected products only</option></select></label>
-      <label>Product selection (Ctrl-click to select several)<select id="couponProducts" multiple size="5" aria-describedby="couponProductHelp"></select><small id="couponProductHelp">Only used when “Selected products only” is chosen.</small></label>
-    </div>
-    <label class="inline-check"><input id="couponFirstOrderOnly" type="checkbox"> First order only (enforced by checkout backend)</label>
-    <div id="couponStatusAdmin" class="admin-status" role="status"></div>
-    <button class="admin-btn" type="submit" id="saveCouponBtn">Save coupon</button>
-    <button class="admin-btn secondary" type="button" id="clearCouponBtn">New coupon / clear form</button>
-  </form>
-  <h3 style="margin-top:30px">Saved coupons</h3>
-  <div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Code / discount</th><th>Validity</th><th>Usage</th><th>Products</th><th>Status</th><th>Actions</th></tr></thead><tbody id="couponsRows"><tr><td colspan="6">Run coupon-management-migration.sql, then sign in to load coupons.</td></tr></tbody></table></div>
-</section>
-
 <section id="bookingsTab" class="admin-panel tab-content hidden"><h2>Enquiries & bookings</h2><p class="admin-sub">Only records submitted to the connected database appear here. Existing Google Form responses do not automatically sync unless separately integrated.</p><div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Date</th><th>Customer</th><th>Contact</th><th>Service / note</th><th>Payment ref</th><th>Status</th><th>Update</th></tr></thead><tbody id="bookingsRows"><tr><td colspan="7">No records loaded.</td></tr></tbody></table></div><div id="bookingStatus" class="admin-status" role="status"></div></section>
-
-<section id="policiesTab" class="admin-panel tab-content hidden">
-  <h2>Store policies</h2>
-  <p class="admin-sub">Edit and publish your public shipping, cancellation, returns/refunds and privacy policies. Save changes here; only published policies should be shown publicly.</p>
-  <label>Policy to edit
-    <select id="policyKey">
-      <option value="shipping">Shipping & delivery</option>
-      <option value="cancellation">Cancellation</option>
-      <option value="returns_refunds">Returns & refunds</option>
-      <option value="privacy">Privacy</option>
-      <option value="terms">Terms & conditions</option>
-    </select>
-  </label>
-  <form id="policyForm">
-    <label>Public title<input id="policyTitle" required maxlength="160"></label>
-    <label>Policy content<textarea id="policyContent" rows="18" required></textarea></label>
-    <label class="inline-check"><input id="policyPublished" type="checkbox"> Publish this policy on the public policies page</label>
-    <button class="admin-btn" type="submit">Save policy</button>
-    <button class="admin-btn secondary" type="button" id="reloadPolicyBtn">Reload saved version</button>
-    <div id="policyStatus" class="admin-status" role="status"></div>
-  </form>
-  <p class="admin-sub">Public policy page: <a href="policies.html" target="_blank" rel="noopener">policies.html</a>. Publish only after reviewing all bracketed placeholders and confirming your actual business practices.</p>
-</section>
-
-<section id="customizationTab" class="admin-panel tab-content hidden">
-<h2>Design & homepage slideshow</h2>
-<p class="admin-sub">Upload images or use public image URLs. Changes are saved to Supabase and displayed on the public homepage after you publish.</p>
-<form id="customizationForm">
-<div class="admin-grid">
-<label>Announcement bar text<input id="customAnnouncement" maxlength="180" placeholder="A MORE INTENTIONAL EVERYDAY, STARTS HERE"></label>
-<label>Announcement secondary text<input id="customAnnouncementSub" maxlength="180" placeholder="Malas · Yantras · Devotional essentials"></label>
-<label>Hero headline — first line<input id="customHeroLine1" maxlength="100" placeholder="Keep your faith close."></label>
-<label>Hero headline — emphasized line<input id="customHeroLine2" maxlength="100" placeholder="Live with intention."></label>
-<label>Hero description<textarea id="customHeroDescription" rows="3" maxlength="500" placeholder="Homepage introduction"></textarea></label>
-<label>Hero primary button label<input id="customPrimaryLabel" maxlength="60" placeholder="Explore the collection"></label>
-<label>Hero primary button link<input id="customPrimaryLink" placeholder="#shop"></label>
-<label>Hero secondary button label<input id="customSecondaryLabel" maxlength="60" placeholder="Our philosophy"></label>
-<label>Hero secondary button link<input id="customSecondaryLink" placeholder="#about"></label>
-<label>Accent colour<input id="customAccent" type="color" value="#d8b46a"></label>
-<label>Slideshow interval (seconds)<input id="customInterval" type="number" min="3" max="30" value="6"></label>
-<label>Transition<select id="customTransition"><option value="fade">Fade</option><option value="slide">Slide</option></select></label>
-</div>
-<label class="inline-check"><input id="customAutoplay" type="checkbox" checked> Automatically rotate slideshow</label>
-<label class="inline-check"><input id="customShowDots" type="checkbox" checked> Show slide indicators</label>
-<div class="custom-slides-head"><h3>Hero images</h3><button class="admin-btn secondary" type="button" id="addSlideBtn">+ Add image</button></div>
-<p class="admin-sub">For uploads, choose JPG, PNG, WebP or GIF up to 8 MB. Alternatively paste a publicly accessible HTTPS image URL.</p>
-<div id="slidesEditor" class="slides-editor"></div>
-<div id="customizationStatus" class="admin-status" role="status"></div>
-<button class="admin-btn" type="submit">Save and publish design</button>
-<button class="admin-btn secondary" type="button" id="resetCustomizationBtn">Reset form to saved settings</button>
-</form>
-</section>
-<section id="articlesTab" class="admin-panel tab-content hidden">
-<h2>Journal & article publishing</h2>
-<p class="admin-sub">Edit the three homepage Journal entries or publish new articles on Sanātana Dharma, spiritual practice, mindful living, and other topics. Drafts stay private; published articles appear on the public website.</p>
-<form id="articleForm">
-<input type="hidden" id="articleId">
-<div class="admin-grid">
-<label>Article title<input id="articleTitle" maxlength="180" required placeholder="Article title"></label>
-<label>URL slug<input id="articleSlug" maxlength="180" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="article-title"></label>
-<label>Category / topic<input id="articleCategory" maxlength="80" required placeholder="e.g. Sanātana Dharma"></label>
-<label>Reading time (minutes)<input id="articleReadTime" type="number" min="1" max="60" value="4" required></label>
-</div>
-<label>Short summary / homepage excerpt<textarea id="articleExcerpt" rows="3" maxlength="400" required placeholder="A short summary shown on the homepage"></textarea></label>
-<label>Full article content<textarea id="articleContent" rows="14" required placeholder="Write your article here. Separate paragraphs with a blank line. Use ## Heading for section headings and - item for bullet lists."></textarea></label>
-<div class="admin-grid">
-<label>Publication status<select id="articlePublished"><option value="false">Draft — private</option><option value="true">Published — public</option></select></label>
-<label>Featured on homepage<select id="articleFeatured"><option value="true">Yes — include in Journal</option><option value="false">No — article page only</option></select></label>
-</div>
-<button class="admin-btn" type="submit" id="saveArticleBtn">Save article</button>
-<button class="admin-btn secondary" type="button" id="clearArticleBtn">New article / clear form</button>
-<div id="articleStatus" class="admin-status" role="status"></div>
-</form>
-<h3 style="margin-top:30px">Saved articles</h3>
-<div class="admin-table-wrap"><table class="admin-table"><thead><tr><th>Article</th><th>Topic</th><th>Status</th><th>Homepage</th><th>Actions</th></tr></thead><tbody id="articlesRows"><tr><td colspan="5">Connect and sign in to load articles.</td></tr></tbody></table></div>
-</section>
 <section id="settingsTab" class="admin-panel tab-content hidden"><h2>Website settings</h2><form id="settingsForm"><label>Business display name<input id="settingBusinessName" value="Protectyourself"></label><label>Contact email<input id="settingEmail" type="email" value="protectyourselfin@gmail.com"></label><label>WhatsApp number (digits only, include country code)<input id="settingWhatsapp" placeholder="Leave blank until confirmed"></label><label>India donation/payment link (hosted provider URL)<input id="settingIndiaPayment" type="url" placeholder="https://..."></label><label>International donation/payment link (hosted provider URL)<input id="settingIntlPayment" type="url" placeholder="https://..."></label><label>Booking form URL (Google Form or your booking form)<input id="settingBookingUrl" type="url" placeholder="https://forms.gle/..."></label><label>Public notice<textarea id="settingNotice" rows="3" placeholder="Optional note displayed on the site"></textarea></label><button class="admin-btn" type="submit">Save settings</button><div id="settingsStatus" class="admin-status" role="status"></div></form></section>
 </section>
 </main><footer class="footer"><p>Protectyourself · Secure admin</p><small>Use only on a trusted device. Admin access is controlled by Supabase authentication and database policies.</small></footer>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/admin.js?v=20261013-coupons"></script></body></html>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/admin.js"></script></body></html>

@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#101b2d">
   <meta name="description" content="Explore Protectyourself Foundation services and submit a service enquiry or book securely online.">
   <title>Services | Protectyourself</title>
-  <link rel="stylesheet" href="assets/style.css?v=20261014-services">
+  <link rel="stylesheet" href="assets/style.css?v=20261014-description-embeds">
   <style>
     .services-wrap{max-width:1120px;margin:0 auto;padding:64px 24px 84px}
     .services-intro{max-width:720px;margin-bottom:36px}
@@ -154,6 +154,59 @@
         "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
       })[ch]);
     }
+    // Safely support YouTube iframe embeds and ImgBB image/embed snippets.
+    // All other HTML is rendered as text; arbitrary scripts and event handlers are never retained.
+    function renderServiceDescription(value) {
+      const raw = String(value ?? "Contact us for further details.");
+      const doc = new DOMParser().parseFromString(`<div>${raw}</div>`, "text/html");
+      const root = doc.body.firstElementChild;
+      const allowedTextTags = new Set(["P", "DIV", "BR", "STRONG", "B", "EM", "I", "UL", "OL", "LI", "H3", "H4", "BLOCKQUOTE"]);
+      const safeUrl = (rawUrl) => {
+        try { const u = new URL(rawUrl, location.origin); return u.protocol === "https:" ? u : null; }
+        catch { return null; }
+      };
+      function clean(node) {
+        if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.nodeValue || "");
+        if (node.nodeType !== Node.ELEMENT_NODE) return document.createDocumentFragment();
+        const tag = node.tagName.toUpperCase();
+        if (tag === "IFRAME") {
+          const src = safeUrl(node.getAttribute("src") || "");
+          if (!src || !/(^|\.)youtube(?:-nocookie)?\.com$/.test(src.hostname) || !/^\/(embed|shorts)\//.test(src.pathname)) return document.createTextNode("");
+          const iframe = document.createElement("iframe");
+          iframe.src = src.href; iframe.title = (node.getAttribute("title") || "YouTube video").slice(0,160);
+          iframe.loading = "lazy"; iframe.referrerPolicy = "strict-origin-when-cross-origin";
+          iframe.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+          iframe.allowFullscreen = true; iframe.width = "560"; iframe.height = "315";
+          iframe.style.cssText = "width:100%;aspect-ratio:16/9;height:auto;border:0;border-radius:8px";
+          return iframe;
+        }
+        if (tag === "IMG") {
+          const src = safeUrl(node.getAttribute("src") || "");
+          if (!src || !/(^|\.)ibb\.co$|(^|\.)i\.ibb\.co$|(^|\.)imgbb\.com$/.test(src.hostname)) return document.createTextNode("");
+          const img = document.createElement("img"); img.src = src.href; img.alt = (node.getAttribute("alt") || "Service image").slice(0,200);
+          img.loading = "lazy"; img.referrerPolicy = "no-referrer"; img.style.cssText = "max-width:100%;height:auto;border-radius:8px;display:block;margin:12px 0";
+          return img;
+        }
+        if (tag === "A") {
+          const href = safeUrl(node.getAttribute("href") || "");
+          const a = document.createElement("a");
+          if (href && /(^|\.)imgbb\.com$|(^|\.)ibb\.co$/.test(href.hostname)) { a.href=href.href; a.target="_blank"; a.rel="noopener noreferrer"; }
+          for (const child of node.childNodes) a.append(clean(child));
+          return a;
+        }
+        if (!allowedTextTags.has(tag)) {
+          const fragment = document.createDocumentFragment();
+          for (const child of node.childNodes) fragment.append(clean(child));
+          return fragment;
+        }
+        const el = document.createElement(tag.toLowerCase());
+        for (const child of node.childNodes) el.append(clean(child));
+        return el;
+      }
+      const output = document.createElement("div");
+      for (const child of root.childNodes) output.append(clean(child));
+      return output.innerHTML.replace(/\n/g, "<br>");
+    }
     function price(value, currency) {
       const n = Number(value);
       if (!Number.isFinite(n)) return "Contact us";
@@ -163,7 +216,7 @@
     }
     function serviceCard(s) {
       const name = escapeHtml(s.name);
-      const description = escapeHtml(s.description || "Contact us for further details.");
+      const description = renderServiceDescription(s.description || "Contact us for further details.");
       return `<article class="service-card">
         <div class="section-kicker">PROTECTYOURSELF SERVICE</div>
         <h2>${name}</h2>
