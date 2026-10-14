@@ -35,8 +35,16 @@
     .service-form .inline-check{display:flex;align-items:flex-start;gap:9px}
     .service-form .inline-check input{width:auto;margin-top:4px}
     .dialog-actions{display:flex;gap:10px;flex-wrap:wrap}
-    .plain-button{border:1px solid #d9d4ca;background:#f7f4ee;padding:12px 18px}
-    @media(max-width:600px){.services-wrap{padding:40px 18px 60px}.service-card{padding:22px}.service-dialog{padding:20px}}
+    .plain-button{border:1px solid #d9d4ca;background:#f7f4ee;padding:12px 18px;cursor:pointer}
+    .checkout-dialog{width:min(100%,560px)}
+    .checkout-summary{display:grid;gap:10px;background:#f7f4ee;padding:16px;margin:16px 0}
+    .checkout-line{display:flex;justify-content:space-between;gap:16px}
+    .checkout-line.total{font-size:1.12rem;font-weight:700;border-top:1px solid #ded5c7;padding-top:10px;color:#101b2d}
+    .coupon-entry{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+    .coupon-entry input{min-width:0}
+    .coupon-note{font-size:.88rem;min-height:1.2em;color:#687386}
+    .coupon-note.error{color:#a52828}.coupon-note.success{color:#216b42}
+    @media(max-width:600px){.services-wrap{padding:40px 18px 60px}.service-card{padding:22px}.service-dialog{padding:20px}.coupon-entry{grid-template-columns:1fr}.coupon-entry button{width:100%}}
   </style>
 </head>
 <body>
@@ -78,6 +86,33 @@
     </section>
   </div>
 
+  <div class="service-modal" id="checkoutModal" hidden>
+    <section class="service-dialog checkout-dialog" role="dialog" aria-modal="true" aria-labelledby="checkoutTitle">
+      <button type="button" id="closeCheckout" class="plain-button" style="float:right">Close</button>
+      <div class="section-kicker">SECURE SERVICE CHECKOUT</div>
+      <h2 id="checkoutTitle">Book this service</h2>
+      <p id="checkoutServiceDescription" class="service-description"></p>
+      <form id="serviceCheckoutForm" class="service-form">
+        <label>Your full name<input name="customer_name" required maxlength="150" autocomplete="name"></label>
+        <label>Email address<input name="customer_email" required type="email" maxlength="320" autocomplete="email"></label>
+        <label>Phone (optional)<input name="customer_phone" type="tel" maxlength="30" autocomplete="tel"></label>
+        <div>
+          <label for="serviceCouponCode">Coupon code</label>
+          <div class="coupon-entry"><input id="serviceCouponCode" maxlength="40" autocomplete="off" placeholder="Enter coupon code"><button type="button" id="applyServiceCoupon" class="plain-button">Apply</button></div>
+          <div id="serviceCouponStatus" class="coupon-note" role="status" aria-live="polite"></div>
+        </div>
+        <div class="checkout-summary" aria-live="polite">
+          <div class="checkout-line"><span>Service price</span><strong id="serviceSubtotal">₹0.00</strong></div>
+          <div class="checkout-line"><span>Coupon discount</span><strong id="serviceDiscount">−₹0.00</strong></div>
+          <div class="checkout-line total"><span>Total to pay</span><strong id="serviceTotal">₹0.00</strong></div>
+        </div>
+        <div id="checkoutStatus" class="service-status" role="status" aria-live="polite"></div>
+        <div class="dialog-actions"><button id="continueServicePayment" class="button button-gold" type="submit">Continue to payment</button><button type="button" id="cancelCheckout" class="plain-button">Cancel</button></div>
+        <p class="coupon-note">Coupon eligibility and final discount are verified securely by the server. Payments are processed in INR.</p>
+      </form>
+    </section>
+  </div>
+
   <footer class="footer">
     <a class="brand footer-brand" href="index.html"><span class="brand-mark">P</span><span>protect<span class="brand-light">yourself</span><small>SPIRITUAL ESSENTIALS · DEVOTION · INTENTION</small></span></a>
     <p>Malas · Yantras · Devotional essentials.</p>
@@ -97,6 +132,13 @@
     const modal = document.getElementById("enquiryModal");
     const form = document.getElementById("serviceEnquiryForm");
     const enquiryStatus = document.getElementById("enquiryStatus");
+    const checkoutModal = document.getElementById("checkoutModal");
+    const checkoutForm = document.getElementById("serviceCheckoutForm");
+    const checkoutStatus = document.getElementById("checkoutStatus");
+    const couponCodeInput = document.getElementById("serviceCouponCode");
+    let selectedPayService = null;
+    let appliedServiceCoupon = null;
+    let lastValidatedEmail = "";
     document.getElementById("year").textContent = new Date().getFullYear();
 
     const supabase = window.supabase && config.supabaseUrl && config.supabasePublishableKey
@@ -156,7 +198,7 @@
         grid.innerHTML = services.map(serviceCard).join("");
         setStatus(status, "", "");
         grid.querySelectorAll("[data-enquire]").forEach(btn => btn.addEventListener("click", () => openEnquiry(btn.dataset.enquire)));
-        grid.querySelectorAll("[data-pay]").forEach(btn => btn.addEventListener("click", () => startPayment(btn.dataset.pay)));
+        grid.querySelectorAll("[data-pay]").forEach(btn => btn.addEventListener("click", () => openCheckout(btn.dataset.pay)));
       } catch (e) {
         console.error("Unable to load services", e);
         setStatus(status, "We couldn't load services right now. Please refresh or email protectyourselfin@gmail.com.", "error");
@@ -211,61 +253,135 @@
       } finally { submit.disabled = false; }
     });
 
-    async function startPayment(id) {
-      const s = services.find(x => x.id === id);
-      if (!s) return;
+    function inr(value) { return price(Number(value || 0), "INR"); }
+    function resetServiceCoupon(message = "") {
+      appliedServiceCoupon = null;
+      lastValidatedEmail = "";
+      couponCodeInput.value = "";
+      document.getElementById("serviceDiscount").textContent = "−" + inr(0);
+      document.getElementById("serviceTotal").textContent = inr(selectedPayService ? selectedPayService.price_inr : 0);
+      const note = document.getElementById("serviceCouponStatus");
+      note.textContent = message;
+      note.className = "coupon-note";
+    }
+    function openCheckout(id) {
+      selectedPayService = services.find(x => x.id === id);
+      if (!selectedPayService) return;
       if (!window.Razorpay || !config.supabaseUrl || !config.supabasePublishableKey) {
         alert("Secure payment is temporarily unavailable. Please use Enquire / Book.");
         return;
       }
-      const customerName = window.prompt("Enter your full name to continue with service payment:");
-      if (!customerName || !customerName.trim()) return;
-      const customerEmail = window.prompt("Enter your email address for the booking:");
-      if (!customerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
-        alert("Please enter a valid email address. You can use Enquire / Book instead.");
-        return;
+      checkoutForm.reset();
+      appliedServiceCoupon = null;
+      lastValidatedEmail = "";
+      document.getElementById("checkoutTitle").textContent = "Book " + selectedPayService.name;
+      document.getElementById("checkoutServiceDescription").textContent = selectedPayService.description || "";
+      document.getElementById("serviceSubtotal").textContent = inr(selectedPayService.price_inr);
+      document.getElementById("serviceDiscount").textContent = "−" + inr(0);
+      document.getElementById("serviceTotal").textContent = inr(selectedPayService.price_inr);
+      document.getElementById("serviceCouponStatus").textContent = "";
+      document.getElementById("serviceCouponStatus").className = "coupon-note";
+      setStatus(checkoutStatus, "", "");
+      checkoutModal.hidden = false;
+      checkoutForm.elements.customer_name.focus();
+    }
+    function closeCheckout() { checkoutModal.hidden = true; }
+    document.getElementById("closeCheckout").addEventListener("click", closeCheckout);
+    document.getElementById("cancelCheckout").addEventListener("click", closeCheckout);
+    checkoutModal.addEventListener("click", e => { if (e.target === checkoutModal) closeCheckout(); });
+    document.addEventListener("keydown", e => { if (e.key === "Escape") { modal.hidden = true; closeCheckout(); } });
+
+    async function serviceApi(payload) {
+      const response = await fetch(config.supabaseUrl + "/functions/v1/service-checkout", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json", "apikey":config.supabasePublishableKey, "Authorization":"Bearer " + config.supabasePublishableKey },
+        body:JSON.stringify(payload)
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || "Secure service checkout failed.");
+      return result;
+    }
+    document.getElementById("applyServiceCoupon").addEventListener("click", async () => {
+      const email = String(checkoutForm.elements.customer_email.value || "").trim().toLowerCase();
+      const code = String(couponCodeInput.value || "").trim().toUpperCase();
+      const note = document.getElementById("serviceCouponStatus");
+      if (!selectedPayService) return;
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        note.textContent = "Enter a valid email address before applying a coupon."; note.className = "coupon-note error"; return;
       }
-      // Currency and amount are resolved by the server from the live service record.
-      // The endpoint rejects USD until international payment support is explicitly enabled.
+      if (!code) { resetServiceCoupon("Enter a coupon code first."); return; }
+      const button = document.getElementById("applyServiceCoupon");
+      button.disabled = true; button.textContent = "Checking…";
       try {
-        const response = await fetch(config.supabaseUrl + "/functions/v1/service-checkout", {
-          method: "POST",
-          headers: { "Content-Type":"application/json", "apikey":config.supabasePublishableKey, "Authorization":"Bearer " + config.supabasePublishableKey },
-          body: JSON.stringify({ action:"create_order", service_id:s.id, customer_name:customerName.trim(), customer_email:customerEmail.trim(), currency:"INR" })
-        });
-        const order = await response.json();
-        if (!response.ok || !order.success) throw new Error(order.error || "Could not create secure payment.");
+        const result = await serviceApi({ action:"validate_coupon", service_id:selectedPayService.id, customer_email:email, coupon_code:code });
+        appliedServiceCoupon = { code:result.coupon_code, discount:Number(result.discount_inr || 0) };
+        lastValidatedEmail = email;
+        document.getElementById("serviceDiscount").textContent = "−" + inr(appliedServiceCoupon.discount);
+        document.getElementById("serviceTotal").textContent = inr(result.total_inr);
+        note.textContent = code + " applied. Discount: " + inr(appliedServiceCoupon.discount) + ".";
+        note.className = "coupon-note success";
+      } catch (err) {
+        appliedServiceCoupon = null; lastValidatedEmail = "";
+        document.getElementById("serviceDiscount").textContent = "−" + inr(0);
+        document.getElementById("serviceTotal").textContent = inr(selectedPayService.price_inr);
+        note.textContent = err.message || "Could not validate this coupon."; note.className = "coupon-note error";
+      } finally { button.disabled = false; button.textContent = "Apply"; }
+    });
+    couponCodeInput.addEventListener("input", () => {
+      if (appliedServiceCoupon && couponCodeInput.value.trim().toUpperCase() !== appliedServiceCoupon.code) resetServiceCoupon("Coupon code changed. Apply it again.");
+    });
+    checkoutForm.elements.customer_email.addEventListener("input", () => {
+      if (appliedServiceCoupon && checkoutForm.elements.customer_email.value.trim().toLowerCase() !== lastValidatedEmail) resetServiceCoupon("Email changed. Apply the coupon again.");
+    });
+
+    checkoutForm.addEventListener("submit", async e => {
+      e.preventDefault();
+      if (!selectedPayService) return;
+      const name = String(checkoutForm.elements.customer_name.value || "").trim();
+      const email = String(checkoutForm.elements.customer_email.value || "").trim().toLowerCase();
+      const phone = String(checkoutForm.elements.customer_phone.value || "").trim();
+      const couponCode = appliedServiceCoupon && lastValidatedEmail === email ? appliedServiceCoupon.code : "";
+      const submit = document.getElementById("continueServicePayment");
+      submit.disabled = true; submit.textContent = "Preparing secure payment…";
+      setStatus(checkoutStatus, "Creating your secure booking…", "");
+      try {
+        const order = await serviceApi({ action:"create_order", service_id:selectedPayService.id, customer_name:name, customer_email:email, customer_phone:phone, currency:"INR", coupon_code:couponCode });
+        closeCheckout();
         const checkout = new window.Razorpay({
           key:order.key_id, amount:order.amount, currency:order.currency,
           name:"Protectyourself Foundation", description:order.service_name,
           order_id:order.razorpay_order_id,
-          prefill:{ name:order.customer_name, email:order.customer_email },
-          notes:{ booking_number:order.booking_number },
+          prefill:{ name:order.customer_name, email:order.customer_email, contact:order.customer_phone || "" },
+          notes:{ booking_number:order.booking_number, coupon_code:order.coupon_code || "" },
           theme:{ color:"#101b2d" },
           handler: async function (payment) {
             try {
-              const verifiedResponse = await fetch(config.supabaseUrl + "/functions/v1/service-checkout", {
-                method:"POST",
-                headers:{ "Content-Type":"application/json", "apikey":config.supabasePublishableKey, "Authorization":"Bearer " + config.supabasePublishableKey },
-                body:JSON.stringify({ action:"verify_payment", booking_id:order.booking_id, razorpay_order_id:payment.razorpay_order_id, razorpay_payment_id:payment.razorpay_payment_id, razorpay_signature:payment.razorpay_signature })
-              });
-              const verified = await verifiedResponse.json();
-              if (!verifiedResponse.ok || !verified.success) throw new Error(verified.error || "Payment verification is pending.");
+              const verified = await serviceApi({ action:"verify_payment", booking_id:order.booking_id, razorpay_order_id:payment.razorpay_order_id, razorpay_payment_id:payment.razorpay_payment_id, razorpay_signature:payment.razorpay_signature });
               alert("Payment verified. Your service booking reference is " + verified.booking_number + ". Please retain this reference.");
+              setStatus(status, "Payment verified for booking " + verified.booking_number + ".", "success");
             } catch (err) {
               console.error("Service payment verification failed", err);
               alert("Payment was submitted, but confirmation could not be verified in this browser. Do not pay again yet. Contact protectyourselfin@gmail.com and quote booking " + order.booking_number + ".");
             }
           },
-          modal:{ ondismiss:function(){ setStatus(status, "Checkout closed. If you completed a payment, contact us before retrying.", ""); } }
+          modal:{ ondismiss:function(){ setStatus(status, "Checkout closed. If you completed a payment, contact us before retrying. Booking " + order.booking_number + ".", ""); } }
         });
-        checkout.on("payment.failed", function () { setStatus(status, "Payment did not complete. You can retry or submit an enquiry.", "error"); });
+        checkout.on("payment.failed", async function (failure) {
+          setStatus(status, "Payment did not complete. Releasing the coupon reservation…", "error");
+          try {
+            await serviceApi({action:"payment_failed",booking_id:order.booking_id,razorpay_order_id:order.razorpay_order_id});
+            setStatus(status, "Payment did not complete. The coupon reservation has been released; you can try again.", "error");
+          } catch (err) {
+            console.warn("Could not release failed service coupon reservation",err);
+            setStatus(status, "Payment did not complete. If you retry, first confirm the previous payment was not charged.", "error");
+          }
+        });
         checkout.open();
       } catch (err) {
         console.error("Could not start service payment", err);
-        alert((err && err.message) || "Secure service payment is not configured yet. Please use Enquire / Book.");
-      }
-    }
+        setStatus(checkoutStatus, err.message || "Secure service payment could not be started.", "error");
+      } finally { submit.disabled = false; submit.textContent = "Continue to payment"; }
+    });
     loadServices();
   })();
   </script>
