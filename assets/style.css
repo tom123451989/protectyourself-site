@@ -215,16 +215,31 @@
 }
 
 
-/* Homepage services cards below the product catalogue CTA */
+/* Homepage services use the same product-card system for a consistent storefront */
 .home-services{margin-top:3.5rem;padding-top:2.75rem;border-top:1px solid var(--line,#e8dfd1)}
-.home-service-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:1.1rem;margin-top:1.5rem}
-.home-service-card{display:grid;grid-template-columns:58px minmax(0,1fr);gap:1rem;padding:1.35rem;background:#fff;border:1px solid #e8dfd1;box-shadow:0 8px 26px rgba(16,27,45,.035);min-width:0}
-.home-service-icon{width:54px;height:54px;display:grid;place-items:center;background:#f7f1e7;border:1px solid #e6d3ae;color:#b88735;font-size:1.65rem}
-.home-service-content{min-width:0;display:flex;flex-direction:column;align-items:flex-start}
-.home-service-content h3{margin:.35rem 0 .55rem;font-family:Georgia,'Times New Roman',serif;font-size:1.45rem;font-weight:500;line-height:1.25;color:#101b2d}
-.home-service-content p{margin:0 0 1rem;color:#667085;font-size:.92rem;line-height:1.7}
-.home-service-prices{display:flex;flex-wrap:wrap;align-items:baseline;gap:.45rem .8rem;margin-top:auto;margin-bottom:1rem}
-.home-service-prices strong{font-size:1.08rem;color:#101b2d}.home-service-prices span{font-size:.8rem;color:#7b8491}
-.home-service-content .button{margin-top:.15rem;text-decoration:none}
+.home-services .section-heading{margin-bottom:1.2rem}
+.home-service-grid{display:block;margin-top:1.1rem;min-width:0}
+.home-service-track{margin-top:0}
+.home-service-card{display:flex;flex-direction:column;min-width:0}
+.home-service-card .product-image-wrap{overflow:hidden}
+.home-service-photo{display:block;width:100%;height:clamp(155px,20vw,210px);object-fit:cover;background:#f4f0e8}
+.home-service-art{height:clamp(155px,20vw,210px);display:grid;place-items:center;position:relative;overflow:hidden;color:#e5c98c;background:radial-gradient(circle at 50% 42%,#536276,#101b2d 76%)}
+.home-service-art:before,.home-service-art:after{content:"";position:absolute;width:170px;height:170px;border:1px solid rgba(230,201,140,.45);border-radius:50%;transform:rotate(-25deg)}
+.home-service-art:after{width:125px;height:125px;border-style:dashed;transform:rotate(25deg)}
+.home-service-art>span{font-size:58px;line-height:1;z-index:1;text-shadow:0 4px 18px #0006}
+.home-service-art>small{position:absolute;top:12px;left:12px;background:#fff;color:#74603d;padding:5px 8px;font-size:8px;letter-spacing:.1em}
+.home-service-art-2{background:radial-gradient(circle at 50% 42%,#c9ad78,#625038 78%)}
+.home-service-art-3{background:radial-gradient(circle at 50% 42%,#6e827e,#253d3d 78%)}
+.home-service-art-4{background:radial-gradient(circle at 50% 42%,#a88a65,#3d2d2a 78%)}
+.home-service-card .product-info{display:flex;flex:1;flex-direction:column}
+.home-service-card .product-info h3{min-height:2.5em}
+.home-service-card .product-info p{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;min-height:3.6em;margin-bottom:10px}
+.home-service-card .product-stock{font-size:10px;color:#737b86;margin:0 0 12px}
+.home-service-bottom{margin-top:auto;align-items:center}
+.home-service-prices{display:flex;flex-direction:column;gap:3px;min-width:0}
+.home-service-prices b{font-size:14px;color:#101b2d}
+.home-service-prices span{font-size:10px;color:#7b8491;line-height:1.4}
+.home-service-link{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;text-align:center;white-space:normal;min-width:92px}
 .home-services-footer{margin-top:1.5rem}
-@media(max-width:640px){.home-services{margin-top:2.5rem;padding-top:2rem}.home-service-card{grid-template-columns:42px minmax(0,1fr);gap:.8rem;padding:1rem}.home-service-icon{width:40px;height:40px;font-size:1.25rem}.home-service-content h3{font-size:1.25rem}}
+@media(max-width:700px){.home-services{margin-top:2.5rem;padding-top:2rem}.home-service-photo{height:clamp(145px,36vw,200px)}.home-service-art{height:clamp(145px,36vw,200px)}.home-service-card .product-info{padding:0 10px 12px}.home-service-card .product-info h3{font-size:15px}.home-service-bottom{align-items:flex-start;flex-direction:column}.home-service-link{width:100%}}
+@media(max-width:420px){.home-service-photo{height:185px}.home-service-art{height:185px}}

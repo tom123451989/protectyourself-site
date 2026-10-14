@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#101b2d">
   <meta name="description" content="Explore Protectyourself Foundation services and submit a service enquiry or book securely online.">
   <title>Services | Protectyourself</title>
-  <link rel="stylesheet" href="assets/style.css?v=20261014-description-embeds">
+  <link rel="stylesheet" href="assets/style.css?v=20261014-service-images">
   <style>
     .services-wrap{max-width:1120px;margin:0 auto;padding:64px 24px 84px}
     .services-intro{max-width:720px;margin-bottom:36px}
@@ -15,6 +15,13 @@
     .service-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:22px}
     .service-card{border:1px solid #e8e0d3;background:#fff;padding:28px;display:flex;flex-direction:column;gap:16px}
     .service-card h2{margin:0;font-size:1.7rem;color:#101b2d}
+    .service-card-image-wrap{margin:-28px -28px 0;overflow:hidden;background:#f4f0e8;position:relative}
+    .service-card-image{display:block;width:100%;height:220px;object-fit:cover;background:#f4f0e8}
+    .service-card-image-placeholder{height:220px;display:grid;place-items:center;position:relative;color:#e5c98c;background:radial-gradient(circle at 50% 42%,#536276,#101b2d 76%);overflow:hidden}
+    .service-card-image-placeholder:before,.service-card-image-placeholder:after{content:"";position:absolute;width:170px;height:170px;border:1px solid rgba(230,201,140,.45);border-radius:50%}
+    .service-card-image-placeholder:after{width:125px;height:125px;border-style:dashed}
+    .service-card-image-placeholder span{font-size:58px;line-height:1;z-index:1}
+    .service-card-image-placeholder small{position:absolute;top:12px;left:12px;background:#fff;color:#74603d;padding:5px 8px;font-size:8px;letter-spacing:.1em}
     .service-description{line-height:1.75;color:#687386;white-space:pre-line}
     .service-prices{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:auto}
     .service-price{background:#f7f4ee;padding:14px}
@@ -57,7 +64,7 @@
     .coupon-note{font-size:.88rem;min-height:1.2em;color:#687386}
     .coupon-note.error{color:#a52828}.coupon-note.success{color:#216b42}
     @media(max-width:700px){.customer-reviews{margin-top:36px;padding:24px 16px}.review-card{grid-template-columns:1fr;gap:18px;padding:16px}.review-photo{min-height:0;height:auto;max-height:420px;aspect-ratio:4/3;object-fit:cover}.review-copy h3{font-size:1.4rem}}
-    @media(max-width:600px){.services-wrap{padding:40px 18px 60px}.service-card{padding:22px}.service-dialog{padding:20px}.coupon-entry{grid-template-columns:1fr}.coupon-entry button{width:100%}}
+    @media(max-width:600px){.services-wrap{padding:40px 18px 60px}.service-card{padding:22px}.service-card-image-wrap{margin:-22px -22px 0}.service-card-image,.service-card-image-placeholder{height:190px}.service-dialog{padding:20px}.coupon-entry{grid-template-columns:1fr}.coupon-entry button{width:100%}}
   </style>
 </head>
 <body>
@@ -268,7 +275,13 @@
     function serviceCard(s) {
       const name = escapeHtml(s.name);
       const description = renderServiceDescription(s.description || "Contact us for further details.");
+      let imageUrl = "";
+      try { const u = new URL(String(s.image_url || ""), location.href); if (u.protocol === "https:") imageUrl = u.href; } catch {}
+      const image = imageUrl
+        ? `<div class="service-card-image-wrap"><img class="service-card-image" src="${escapeHtml(imageUrl)}" alt="${name} service image" loading="lazy" decoding="async"></div>`
+        : `<div class="service-card-image-wrap service-card-image-placeholder" aria-hidden="true"><span>✦</span><small>PERSONALISED SERVICE</small></div>`;
       return `<article class="service-card">
+        ${image}
         <div class="section-kicker">PROTECTYOURSELF SERVICE</div>
         <h2>${name}</h2>
         <div class="service-description">${description}</div>
@@ -290,7 +303,7 @@
       }
       try {
         const {data, error} = await supabase.from("services")
-          .select("id,name,description,price_inr,price_usd,is_active")
+          .select("id,name,description,price_inr,price_usd,image_url,is_active")
           .eq("is_active", true).order("created_at", {ascending:true});
         if (error) throw error;
         services = data || [];

@@ -22,12 +22,72 @@ $('signOutBtn').addEventListener('click',async()=>{if(supabase)await supabase.au
 if(window.supabase){/* initialized after config is loaded */}
 document.querySelectorAll('.admin-tabs button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.admin-tabs button').forEach(b=>b.classList.toggle('active',b===btn));document.querySelectorAll('.tab-content').forEach(p=>p.classList.toggle('hidden',p.id!==btn.dataset.tab));if(btn.dataset.tab==='productsTab')loadProducts();if(btn.dataset.tab==='reviewsTab')loadReviews();if(btn.dataset.tab==='ordersTab')loadOrders();if(btn.dataset.tab==='bookingsTab')loadBookings();if(btn.dataset.tab==='policiesTab')loadPolicy();if(btn.dataset.tab==='settingsTab')loadSettings();if(btn.dataset.tab==='customizationTab')loadCustomization();if(btn.dataset.tab==='articlesTab')loadArticles()}));
 async function showDashboard(){setConnectedUI(true);setStatus('loginStatus','Signed in successfully.','success');await loadServices();await loadProducts();await loadReviews();await loadOrders();await loadSettings();await loadBookings();await loadCustomization();await loadArticles()}
-async function loadServices(){const {data,error}=await supabase.from('services').select('*').order('created_at',{ascending:true});if(error){$('servicesRows').innerHTML='<tr><td colspan="5">Could not load services: '+safe(error.message)+'</td></tr>';setStatus('serviceStatus','Check that you ran supabase-schema.sql and are signed in as an admin.','error');return}services=data||[];$('statServices').textContent=services.length;renderServices()}
-function renderServices(){$('servicesRows').innerHTML=services.length?services.map(s=>`<tr><td><b>${safe(s.name)}</b><br>${safe(s.description||'')}</td><td>₹${safe(s.price_inr)}</td><td>$${safe(s.price_usd)}</td><td>${s.is_active?'Published':'Hidden'}</td><td><button class="admin-btn secondary" data-edit="${safe(s.id)}">Edit</button><button class="admin-btn danger" data-delete="${safe(s.id)}">Delete</button></td></tr>`).join(''):'<tr><td colspan="5">No services yet. Use the form above to add one.</td></tr>';
- $('servicesRows').querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>{const s=services.find(x=>x.id===b.dataset.edit);if(!s)return;$('serviceId').value=s.id;$('serviceName').value=s.name;$('serviceDescription').value=s.description||'';$('priceInr').value=s.price_inr;$('priceUsd').value=s.price_usd;$('serviceActive').value=String(s.is_active);window.scrollTo({top:0,behavior:'smooth'})}));
- $('servicesRows').querySelectorAll('[data-delete]').forEach(b=>b.addEventListener('click',async()=>{if(!confirm('Delete this service?'))return;const {error}=await supabase.from('services').delete().eq('id',b.dataset.delete);if(error){setStatus('serviceStatus',error.message,'error');return}setStatus('serviceStatus','Service deleted.','success');await loadServices()}))}
-$('serviceForm').addEventListener('submit',async e=>{e.preventDefault();const id=$('serviceId').value;const row={name:$('serviceName').value.trim(),description:$('serviceDescription').value.trim(),price_inr:Number($('priceInr').value),price_usd:Number($('priceUsd').value),is_active:$('serviceActive').value==='true'};const result=id?await supabase.from('services').update(row).eq('id',id):await supabase.from('services').insert(row);if(result.error){setStatus('serviceStatus',result.error.message,'error');return}setStatus('serviceStatus','Service saved to the database.','success');$('serviceId').value='';await loadServices()});
-$('clearServiceBtn').addEventListener('click',()=>{$('serviceForm').reset();$('serviceId').value='';$('serviceName').value='Transcendental Protection';$('priceInr').value='500';$('priceUsd').value='50';$('serviceActive').value='true'});
+const SERVICE_IMAGE_BUCKET='service-images';
+const SERVICE_IMAGE_MAX_BYTES=5*1024*1024;
+const SERVICE_IMAGE_TYPES=['image/jpeg','image/png','image/webp','image/gif'];
+let servicePreviewObjectUrl=null;
+function safePublicImageUrl(value){try{const u=new URL(String(value||''),window.location.href);return u.protocol==='https:'?u.href:''}catch{return ''}}
+function revokeServicePreview(){if(servicePreviewObjectUrl){URL.revokeObjectURL(servicePreviewObjectUrl);servicePreviewObjectUrl=null}}
+function showServiceImagePreview(url){const wrap=$('serviceImagePreviewWrap'),img=$('serviceImagePreview');if(url){img.src=url;wrap.classList.remove('hidden')}else{img.removeAttribute('src');wrap.classList.add('hidden')}}
+function resetServiceImageControls(){revokeServicePreview();$('serviceImageFile').value='';$('serviceImageUrl').value='';$('serviceImagePath').value='';$('serviceImageOldPath').value='';$('serviceImageRemove').value='false';showServiceImagePreview('');$('serviceImageHint').textContent='No image selected. The gold-star design will be used as a fallback.'}
+$('serviceImageFile').addEventListener('change',()=>{
+ const file=$('serviceImageFile').files&&$('serviceImageFile').files[0];
+ if(!file){revokeServicePreview();const existing=$('serviceImageRemove').value==='true'?'':safePublicImageUrl($('serviceImageUrl').value);showServiceImagePreview(existing);return;}
+ if(!SERVICE_IMAGE_TYPES.includes(file.type)){setStatus('serviceStatus','Choose a JPG, PNG, WebP, or GIF image.','error');$('serviceImageFile').value='';return;}
+ if(file.size>SERVICE_IMAGE_MAX_BYTES){setStatus('serviceStatus','Image must be 5 MB or smaller.','error');$('serviceImageFile').value='';return;}
+ $('serviceImageRemove').value='false';revokeServicePreview();servicePreviewObjectUrl=URL.createObjectURL(file);showServiceImagePreview(servicePreviewObjectUrl);$('serviceImageHint').textContent='Selected: '+file.name+' — save the service to upload this image.';
+});
+$('removeServiceImageBtn').addEventListener('click',()=>{
+ $('serviceImageFile').value='';revokeServicePreview();
+ const hasSavedImage=Boolean($('serviceImageUrl').value)||$('serviceImageRemove').value==='true';
+ if(hasSavedImage){$('serviceImageUrl').value='';$('serviceImagePath').value='';$('serviceImageRemove').value='true';showServiceImagePreview('');$('serviceImageHint').textContent='The saved image will be removed when you save this service.';}
+ else{$('serviceImageRemove').value='false';showServiceImagePreview('');$('serviceImageHint').textContent='No image selected. The gold-star design will be used as a fallback.';}
+});
+async function loadServices(){const {data,error}=await supabase.from('services').select('*').order('created_at',{ascending:true});if(error){$('servicesRows').innerHTML='<tr><td colspan="6">Could not load services: '+safe(error.message)+'</td></tr>';setStatus('serviceStatus','Check that you ran the services image migration and are signed in as an admin.','error');return}services=data||[];$('statServices').textContent=services.length;renderServices()}
+function renderServices(){
+ $('servicesRows').innerHTML=services.length?services.map(s=>{const image=safePublicImageUrl(s.image_url);return `<tr><td><b>${safe(s.name)}</b><br><span>${safe((s.description||'').slice(0,180))}${(s.description||'').length>180?'…':''}</span></td><td>${image?`<a href="${safe(image)}" target="_blank" rel="noopener"><img class="service-image-thumb" src="${safe(image)}" alt="${safe(s.name)} service image"></a>`:'<span class="service-image-empty">Gold-star fallback</span>'}</td><td>₹${safe(s.price_inr)}</td><td>$${safe(s.price_usd)}</td><td>${s.is_active?'Published':'Hidden'}</td><td><button class="admin-btn secondary" data-edit="${safe(s.id)}">Edit</button><button class="admin-btn danger" data-delete="${safe(s.id)}">Delete</button></td></tr>`}).join(''):'<tr><td colspan="6">No services yet. Use the form above to add one.</td></tr>';
+ $('servicesRows').querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click',()=>{const s=services.find(x=>String(x.id)===b.dataset.edit);if(!s)return;resetServiceImageControls();$('serviceId').value=s.id;$('serviceName').value=s.name||'';$('serviceDescription').value=s.description||'';$('priceInr').value=s.price_inr??'';$('priceUsd').value=s.price_usd??'';$('serviceActive').value=String(!!s.is_active);$('serviceImageUrl').value=s.image_url||'';$('serviceImagePath').value=s.image_path||'';$('serviceImageOldPath').value=s.image_path||'';const url=safePublicImageUrl(s.image_url);showServiceImagePreview(url);$('serviceImageHint').textContent=url?'Current service image. Select another file to replace it, or choose Remove image.':'No image selected. The gold-star design will be used as a fallback.';window.scrollTo({top:0,behavior:'smooth'})}));
+ $('servicesRows').querySelectorAll('[data-delete]').forEach(b=>b.addEventListener('click',async()=>{if(!confirm('Delete this service?'))return;const service=services.find(x=>String(x.id)===b.dataset.delete);const {error}=await supabase.from('services').delete().eq('id',b.dataset.delete);if(error){setStatus('serviceStatus',error.message,'error');return}if(service&&service.image_path){const {error:removeError}=await supabase.storage.from(SERVICE_IMAGE_BUCKET).remove([service.image_path]);if(removeError)console.warn('Could not remove deleted service image:',removeError.message)}setStatus('serviceStatus','Service deleted.','success');await loadServices()}));
+}
+async function persistServiceImage(serviceId){
+ const file=$('serviceImageFile').files&&$('serviceImageFile').files[0];
+ const oldPath=$('serviceImageOldPath').value.trim();
+ const storage=supabase.storage.from(SERVICE_IMAGE_BUCKET);
+ if(file){
+  if(!SERVICE_IMAGE_TYPES.includes(file.type)||file.size>SERVICE_IMAGE_MAX_BYTES)throw new Error('Choose a JPG, PNG, WebP, or GIF image no larger than 5 MB.');
+  const cleanName=(file.name||'service-image').replace(/[^\w.-]+/g,'_').slice(-100)||'service-image';
+  const path=`services/${serviceId}/${Date.now()}-${cleanName}`;
+  const {error:uploadError}=await storage.upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type});
+  if(uploadError)throw uploadError;
+  const publicUrl=storage.getPublicUrl(path).data.publicUrl;
+  const {error:updateError}=await supabase.from('services').update({image_url:publicUrl,image_path:path}).eq('id',serviceId);
+  if(updateError){await storage.remove([path]);throw updateError;}
+  if(oldPath&&oldPath!==path){const {error:removeError}=await storage.remove([oldPath]);if(removeError)console.warn('Old service image cleanup failed:',removeError.message)}
+ }else if($('serviceImageRemove').value==='true'){
+  const {error:updateError}=await supabase.from('services').update({image_url:null,image_path:null}).eq('id',serviceId);
+  if(updateError)throw updateError;
+  if(oldPath){const {error:removeError}=await storage.remove([oldPath]);if(removeError)console.warn('Removed image metadata but storage cleanup failed:',removeError.message)}
+ }
+}
+$('serviceForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const id=$('serviceId').value;
+ const row={name:$('serviceName').value.trim(),description:$('serviceDescription').value.trim(),price_inr:Number($('priceInr').value),price_usd:Number($('priceUsd').value),is_active:$('serviceActive').value==='true'};
+ const submit=$('serviceForm').querySelector('button[type="submit"]');if(submit){submit.disabled=true;submit.textContent='Saving…'}
+ try{
+  let serviceId=id,result;
+  if(id){result=await supabase.from('services').update(row).eq('id',id);}
+  else{result=await supabase.from('services').insert(row).select('id').single();serviceId=result.data&&result.data.id;}
+  if(result.error)throw result.error;
+  if(!serviceId)throw new Error('Service was saved, but its record ID was not returned. Reload the list and edit the service to upload its image.');
+  $('serviceId').value=serviceId;
+  try{await persistServiceImage(serviceId)}catch(imageError){setStatus('serviceStatus','Service details were saved, but the image was not updated: '+(imageError.message||'Unknown upload error')+'. Make sure service-images-migration.sql has been run in Supabase.','error');await loadServices();return;}
+  setStatus('serviceStatus','Service saved successfully.','success');clearServiceForm();await loadServices();
+ }catch(error){setStatus('serviceStatus',error.message||'Could not save service.','error')}
+ finally{if(submit){submit.disabled=false;submit.textContent='Save service'}}
+});
+function clearServiceForm(){$('serviceForm').reset();$('serviceId').value='';$('serviceName').value='Transcendental Protection';$('priceInr').value='500';$('priceUsd').value='50';$('serviceActive').value='true';resetServiceImageControls()}
+$('clearServiceBtn').addEventListener('click',()=>{clearServiceForm();setStatus('serviceStatus','','')});
 async function loadProducts(){
  const {data,error}=await supabase.from('products').select('*').order('created_at',{ascending:false});
  if(error){$('productsRows').innerHTML='<tr><td colspan="5">Could not load products: '+safe(error.message)+'</td></tr>';setStatus('productStatus','Check the products table and its Supabase row-level security policies.','error');return}
