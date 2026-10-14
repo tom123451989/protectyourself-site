@@ -62,6 +62,21 @@
   let products=[],cart=[],productsLoaded=false,appliedCoupon=null;try{cart=JSON.parse(localStorage.getItem('protectyourself-cart')||'[]');if(!Array.isArray(cart))cart=[];}catch{cart=[];}
   const saveCart=()=>{try{localStorage.setItem('protectyourself-cart',JSON.stringify(cart));}catch{}renderCart();};
   const cartProduct=id=>products.find(p=>p.id===id);
+  // Published service cards on the homepage, managed through the Admin Panel.
+  async function loadHomeServices(){
+    const serviceGrid=document.getElementById('homeServiceGrid');
+    if(!serviceGrid)return;
+    if(!supabaseReady){serviceGrid.innerHTML='<p class="catalogue-state">Services are temporarily unavailable. Please visit our Services page.</p>';return;}
+    try{
+      const response=await fetch(apiRoot()+'/rest/v1/services?select=id,name,description,price_inr,price_usd,is_active&is_active=eq.true&order=created_at.asc',{headers:{apikey:config.supabasePublishableKey}});
+      if(!response.ok)throw new Error('Could not load published services');
+      const rows=await response.json();
+      if(!Array.isArray(rows)||!rows.length){serviceGrid.innerHTML='<p class="catalogue-state">No services are currently published. Please check back soon.</p>';return;}
+      serviceGrid.innerHTML=rows.map(service=>`<article class="home-service-card"><div class="home-service-icon" aria-hidden="true">✦</div><div class="home-service-content"><div class="section-kicker">PERSONALISED SERVICE</div><h3>${safe(service.name||'Spiritual service')}</h3><p>${safe(service.description||'Contact us to learn more about this personalised service.')}</p><div class="home-service-prices"><strong>₹${Number(service.price_inr||0).toLocaleString('en-IN',{maximumFractionDigits:2})}</strong><span>${service.price_usd!=null?'$'+Number(service.price_usd).toLocaleString('en-US',{maximumFractionDigits:2})+' for international customers':''}</span></div><a class="button button-dark" href="services.html">View service &amp; booking <span>↗</span></a></div></article>`).join('');
+    }catch(error){console.error('Homepage services failed to load:',error);serviceGrid.innerHTML='<p class="catalogue-state">We could not load services right now. <a href="services.html">View our Services page</a>.</p>';}
+  }
+  loadHomeServices();
+
   function renderProducts(){
     if(!grid)return;
     if(!products.length){grid.innerHTML='<p class="catalogue-state">No products are currently published. Please check back soon.</p>';return;}
