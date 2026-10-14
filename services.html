@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101b2d">
+  <meta name="description" content="Explore Protectyourself Foundation services and submit a service enquiry or book securely online.">
+  <title>Services | Protectyourself</title>
+  <link rel="stylesheet" href="assets/style.css?v=20261014-services">
+  <style>
+    .services-wrap{max-width:1120px;margin:0 auto;padding:64px 24px 84px}
+    .services-intro{max-width:720px;margin-bottom:36px}
+    .services-intro h1{font-size:clamp(2.4rem,5vw,4.5rem);line-height:1.04;margin:12px 0 18px;color:#101b2d}
+    .services-intro h1 em{color:#b88b45;font-weight:400}
+    .service-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:22px}
+    .service-card{border:1px solid #e8e0d3;background:#fff;padding:28px;display:flex;flex-direction:column;gap:16px}
+    .service-card h2{margin:0;font-size:1.7rem;color:#101b2d}
+    .service-description{line-height:1.75;color:#687386;white-space:pre-line}
+    .service-prices{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:auto}
+    .service-price{background:#f7f4ee;padding:14px}
+    .service-price small{display:block;color:#687386;margin-bottom:5px}
+    .service-price strong{font-size:1.45rem;color:#101b2d}
+    .service-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .service-actions button{cursor:pointer}
+    .service-status{min-height:1.4em;font-size:.9rem;color:#687386}
+    .service-status.error{color:#a52828}.service-status.success{color:#216b42}
+    .service-modal[hidden]{display:none}
+    .service-modal{position:fixed;inset:0;background:#101b2dcc;z-index:9999;display:grid;place-items:center;padding:18px}
+    .service-dialog{background:#fff;width:min(100%,620px);max-height:90vh;overflow:auto;padding:28px}
+    .service-dialog h2{margin-top:0}
+    .service-form{display:grid;gap:14px}
+    .service-form label{display:grid;gap:6px;font-size:.9rem}
+    .service-form input,.service-form textarea,.service-form select{width:100%;padding:12px;border:1px solid #d9d4ca;font:inherit}
+    .service-form textarea{min-height:100px;resize:vertical}
+    .service-form .inline-check{display:flex;align-items:flex-start;gap:9px}
+    .service-form .inline-check input{width:auto;margin-top:4px}
+    .dialog-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .plain-button{border:1px solid #d9d4ca;background:#f7f4ee;padding:12px 18px}
+    @media(max-width:600px){.services-wrap{padding:40px 18px 60px}.service-card{padding:22px}.service-dialog{padding:20px}}
+  </style>
+</head>
+<body>
+  <div class="announcement">A MORE INTENTIONAL EVERYDAY, STARTS HERE <span>Malas · Yantras · Devotional essentials</span></div>
+  <header class="site-header">
+    <a class="brand" href="index.html"><span class="brand-mark">P</span><span>protect<span class="brand-light">yourself</span><small>SPIRITUAL ESSENTIALS · DEVOTION · INTENTION</small></span></a>
+    <button class="menu-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <nav class="nav"><a href="index.html#shop">Shop</a><a href="services.html" aria-current="page">Services</a><a href="index.html#categories">Categories</a><a href="index.html#about">Our story</a><a href="index.html#journal">Journal</a><a href="articles.html">Articles</a><a href="index.html#contact">Contact</a><a class="nav-cta" href="index.html#shop">Shop products</a></nav>
+  </header>
+
+  <main class="services-wrap">
+    <section class="services-intro">
+      <div class="section-kicker">PERSONAL SPIRITUAL SERVICES</div>
+      <h1>Support your practice.<br><em>Choose with intention.</em></h1>
+      <p>Explore the services currently offered by Protectyourself. You can submit an enquiry or proceed to secure online payment where available. Spiritual practices are personal and outcomes are not guaranteed.</p>
+    </section>
+    <div id="servicesStatus" class="service-status" role="status" aria-live="polite">Loading available services…</div>
+    <section id="serviceGrid" class="service-grid" aria-label="Available services"></section>
+    <p class="disclaimer" style="margin-top:28px">Please review the service description and ask any questions before booking. No service guarantees supernatural, medical, financial, or other specific outcomes.</p>
+  </main>
+
+  <div class="service-modal" id="enquiryModal" hidden>
+    <section class="service-dialog" role="dialog" aria-modal="true" aria-labelledby="enquiryTitle">
+      <button type="button" id="closeEnquiry" class="plain-button" style="float:right">Close</button>
+      <div class="section-kicker">SERVICE ENQUIRY</div>
+      <h2 id="enquiryTitle">Ask about this service</h2>
+      <p id="selectedServiceText" class="service-description"></p>
+      <form id="serviceEnquiryForm" class="service-form">
+        <input type="hidden" name="service_id">
+        <input type="hidden" name="service_name">
+        <label>Your name<input name="customer_name" required maxlength="150" autocomplete="name"></label>
+        <label>Email address<input name="customer_email" required type="email" maxlength="320" autocomplete="email"></label>
+        <label>Phone (optional)<input name="customer_phone" type="tel" maxlength="30" autocomplete="tel"></label>
+        <label>Message<textarea name="message" required maxlength="5000" placeholder="What would you like to know?"></textarea></label>
+        <label class="inline-check"><input type="checkbox" name="consent" required> I agree that Protectyourself may use these details to respond to my enquiry.</label>
+        <div id="enquiryStatus" class="service-status" role="status" aria-live="polite"></div>
+        <button class="button button-gold" type="submit">Submit enquiry ↗</button>
+      </form>
+    </section>
+  </div>
+
+  <footer class="footer">
+    <a class="brand footer-brand" href="index.html"><span class="brand-mark">P</span><span>protect<span class="brand-light">yourself</span><small>SPIRITUAL ESSENTIALS · DEVOTION · INTENTION</small></span></a>
+    <p>Malas · Yantras · Devotional essentials.</p>
+    <div class="footer-links"><a href="index.html#about">About</a><a href="index.html#shop">Shop</a><a href="index.html#contact">Contact</a><a href="policies.html">Store policies</a></div>
+    <small>© <span id="year"></span> Protectyourself Foundation.</small>
+  </footer>
+
+  <script src="assets/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script>
+  (() => {
+    "use strict";
+    const config = window.PROTECTYOURSELF_CONFIG || {};
+    const status = document.getElementById("servicesStatus");
+    const grid = document.getElementById("serviceGrid");
+    const modal = document.getElementById("enquiryModal");
+    const form = document.getElementById("serviceEnquiryForm");
+    const enquiryStatus = document.getElementById("enquiryStatus");
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    const supabase = window.supabase && config.supabaseUrl && config.supabasePublishableKey
+      ? window.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey)
+      : null;
+
+    function setStatus(el, message, type) {
+      el.textContent = message;
+      el.className = "service-status" + (type ? " " + type : "");
+    }
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, ch => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+      })[ch]);
+    }
+    function price(value, currency) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return "Contact us";
+      return new Intl.NumberFormat(currency === "INR" ? "en-IN" : "en-US", {
+        style:"currency", currency, maximumFractionDigits:2
+      }).format(n);
+    }
+    function serviceCard(s) {
+      const name = escapeHtml(s.name);
+      const description = escapeHtml(s.description || "Contact us for further details.");
+      return `<article class="service-card">
+        <div class="section-kicker">PROTECTYOURSELF SERVICE</div>
+        <h2>${name}</h2>
+        <div class="service-description">${description}</div>
+        <div class="service-prices">
+          <div class="service-price"><small>India</small><strong>${escapeHtml(price(s.price_inr,"INR"))}</strong></div>
+          <div class="service-price"><small>International</small><strong>${escapeHtml(price(s.price_usd,"USD"))}</strong></div>
+        </div>
+        <div class="service-actions">
+          <button class="button button-dark" type="button" data-enquire="${escapeHtml(s.id)}">Enquire</button>
+          <button class="button button-gold" type="button" data-pay="${escapeHtml(s.id)}">Book &amp; Pay securely</button>
+        </div>
+      </article>`;
+    }
+    let services = [];
+    async function loadServices() {
+      if (!supabase) {
+        setStatus(status, "Services are temporarily unavailable. Please contact protectyourselfin@gmail.com.", "error");
+        return;
+      }
+      try {
+        const {data, error} = await supabase.from("services")
+          .select("id,name,description,price_inr,price_usd,is_active")
+          .eq("is_active", true).order("created_at", {ascending:true});
+        if (error) throw error;
+        services = data || [];
+        if (!services.length) {
+          grid.replaceChildren();
+          setStatus(status, "No services are currently available. Please check back later.", "");
+          return;
+        }
+        grid.innerHTML = services.map(serviceCard).join("");
+        setStatus(status, "", "");
+        grid.querySelectorAll("[data-enquire]").forEach(btn => btn.addEventListener("click", () => openEnquiry(btn.dataset.enquire)));
+        grid.querySelectorAll("[data-pay]").forEach(btn => btn.addEventListener("click", () => startPayment(btn.dataset.pay)));
+      } catch (e) {
+        console.error("Unable to load services", e);
+        setStatus(status, "We couldn't load services right now. Please refresh or email protectyourselfin@gmail.com.", "error");
+      }
+    }
+    function openEnquiry(id) {
+      const s = services.find(x => x.id === id);
+      if (!s) return;
+      form.elements.service_id.value = s.id;
+      form.elements.service_name.value = s.name;
+      document.getElementById("enquiryTitle").textContent = "Enquire about " + s.name;
+      document.getElementById("selectedServiceText").textContent = s.description || "";
+      setStatus(enquiryStatus, "", "");
+      modal.hidden = false;
+      form.elements.customer_name.focus();
+    }
+    document.getElementById("closeEnquiry").addEventListener("click", () => modal.hidden = true);
+    modal.addEventListener("click", e => { if (e.target === modal) modal.hidden = true; });
+    document.addEventListener("keydown", e => { if (e.key === "Escape") modal.hidden = true; });
+
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+      if (!supabase) return setStatus(enquiryStatus, "Enquiry service unavailable. Please email protectyourselfin@gmail.com.", "error");
+      const data = new FormData(form);
+      const name = String(data.get("customer_name") || "").trim();
+      const email = String(data.get("customer_email") || "").trim();
+      const message = String(data.get("message") || "").trim();
+      const consent = data.get("consent") === "on";
+      const serviceName = String(data.get("service_name") || "");
+      if (!name || !email || !message || !consent || !serviceName) return setStatus(enquiryStatus, "Complete all required fields and consent.", "error");
+      const submit = form.querySelector('button[type="submit"]');
+      submit.disabled = true;
+      setStatus(enquiryStatus, "Submitting enquiry…", "");
+      try {
+        const {error} = await supabase.from("enquiries").insert({
+          customer_name:name,
+          customer_email:email,
+          customer_phone:String(data.get("customer_phone") || "").trim() || null,
+          service_name:serviceName,
+          message,
+          consent:true,
+          status:"new",
+          payment_status:"unverified"
+        });
+        if (error) throw error;
+        form.reset();
+        modal.hidden = true;
+        setStatus(status, "Thank you. Your service enquiry has been submitted.", "success");
+      } catch (err) {
+        console.error("Service enquiry failed", err);
+        setStatus(enquiryStatus, "We couldn't submit your enquiry. Please email protectyourselfin@gmail.com.", "error");
+      } finally { submit.disabled = false; }
+    });
+
+    async function startPayment(id) {
+      const s = services.find(x => x.id === id);
+      if (!s) return;
+      if (!window.Razorpay || !config.supabaseUrl || !config.supabasePublishableKey) {
+        alert("Secure payment is temporarily unavailable. Please use Enquire / Book.");
+        return;
+      }
+      const customerName = window.prompt("Enter your full name to continue with service payment:");
+      if (!customerName || !customerName.trim()) return;
+      const customerEmail = window.prompt("Enter your email address for the booking:");
+      if (!customerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
+        alert("Please enter a valid email address. You can use Enquire / Book instead.");
+        return;
+      }
+      // Currency and amount are resolved by the server from the live service record.
+      // The endpoint rejects USD until international payment support is explicitly enabled.
+      try {
+        const response = await fetch(config.supabaseUrl + "/functions/v1/service-checkout", {
+          method: "POST",
+          headers: { "Content-Type":"application/json", "apikey":config.supabasePublishableKey, "Authorization":"Bearer " + config.supabasePublishableKey },
+          body: JSON.stringify({ action:"create_order", service_id:s.id, customer_name:customerName.trim(), customer_email:customerEmail.trim(), currency:"INR" })
+        });
+        const order = await response.json();
+        if (!response.ok || !order.success) throw new Error(order.error || "Could not create secure payment.");
+        const checkout = new window.Razorpay({
+          key:order.key_id, amount:order.amount, currency:order.currency,
+          name:"Protectyourself Foundation", description:order.service_name,
+          order_id:order.razorpay_order_id,
+          prefill:{ name:order.customer_name, email:order.customer_email },
+          notes:{ booking_number:order.booking_number },
+          theme:{ color:"#101b2d" },
+          handler: async function (payment) {
+            try {
+              const verifiedResponse = await fetch(config.supabaseUrl + "/functions/v1/service-checkout", {
+                method:"POST",
+                headers:{ "Content-Type":"application/json", "apikey":config.supabasePublishableKey, "Authorization":"Bearer " + config.supabasePublishableKey },
+                body:JSON.stringify({ action:"verify_payment", booking_id:order.booking_id, razorpay_order_id:payment.razorpay_order_id, razorpay_payment_id:payment.razorpay_payment_id, razorpay_signature:payment.razorpay_signature })
+              });
+              const verified = await verifiedResponse.json();
+              if (!verifiedResponse.ok || !verified.success) throw new Error(verified.error || "Payment verification is pending.");
+              alert("Payment verified. Your service booking reference is " + verified.booking_number + ". Please retain this reference.");
+            } catch (err) {
+              console.error("Service payment verification failed", err);
+              alert("Payment was submitted, but confirmation could not be verified in this browser. Do not pay again yet. Contact protectyourselfin@gmail.com and quote booking " + order.booking_number + ".");
+            }
+          },
+          modal:{ ondismiss:function(){ setStatus(status, "Checkout closed. If you completed a payment, contact us before retrying.", ""); } }
+        });
+        checkout.on("payment.failed", function () { setStatus(status, "Payment did not complete. You can retry or submit an enquiry.", "error"); });
+        checkout.open();
+      } catch (err) {
+        console.error("Could not start service payment", err);
+        alert((err && err.message) || "Secure service payment is not configured yet. Please use Enquire / Book.");
+      }
+    }
+    loadServices();
+  })();
+  </script>
+</body>
+</html>
