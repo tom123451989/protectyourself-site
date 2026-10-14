@@ -24,6 +24,18 @@
     .service-actions button{cursor:pointer}
     .service-status{min-height:1.4em;font-size:.9rem;color:#687386}
     .service-status.error{color:#a52828}.service-status.success{color:#216b42}
+    .devotee-reviews{margin:52px 0 0;padding:42px;background:linear-gradient(135deg,#fbf8f1 0%,#f5efe3 100%);border:1px solid #e8decc}
+    .reviews-heading{text-align:center;max-width:720px;margin:0 auto 28px}
+    .reviews-heading h2{font-family:'Playfair Display',Georgia,serif;font-size:clamp(1.8rem,3.5vw,2.65rem);font-weight:500;line-height:1.15;color:#101b2d;margin:10px 0 12px}
+    .reviews-heading p{color:#687386;line-height:1.75;margin:0}
+    .review-card{display:grid;grid-template-columns:minmax(180px,.72fr) minmax(0,1.5fr);gap:28px;align-items:center;max-width:900px;margin:0 auto;background:#fff;border:1px solid #e8e0d3;padding:22px;box-shadow:0 12px 34px #101b2d0a}
+    .review-photo-link{display:block;overflow:hidden;background:#f4efe6}
+    .review-photo{display:block;width:100%;height:100%;max-height:360px;min-height:240px;object-fit:cover;object-position:center 35%}
+    .review-copy .review-label{font-size:.72rem;letter-spacing:.15em;font-weight:700;color:#a77e3e;text-transform:uppercase}
+    .review-copy h3{font-family:'Playfair Display',Georgia,serif;font-size:1.55rem;font-weight:500;line-height:1.25;color:#101b2d;margin:10px 0 14px}
+    .review-copy blockquote{margin:0;color:#4f5a69;line-height:1.85;font-size:.97rem}
+    .review-copy .review-attribution{margin:16px 0 0;color:#687386;font-size:.85rem}
+    .review-disclaimer{max-width:900px;margin:16px auto 0;color:#777f89;font-size:.78rem;line-height:1.65;text-align:center}
     .service-modal[hidden]{display:none}
     .service-modal{position:fixed;inset:0;background:#101b2dcc;z-index:9999;display:grid;place-items:center;padding:18px}
     .service-dialog{background:#fff;width:min(100%,620px);max-height:90vh;overflow:auto;padding:28px}
@@ -44,6 +56,7 @@
     .coupon-entry input{min-width:0}
     .coupon-note{font-size:.88rem;min-height:1.2em;color:#687386}
     .coupon-note.error{color:#a52828}.coupon-note.success{color:#216b42}
+    @media(max-width:700px){.devotee-reviews{margin-top:36px;padding:24px 16px}.review-card{grid-template-columns:1fr;gap:18px;padding:16px}.review-photo{min-height:0;height:auto;max-height:420px;aspect-ratio:4/3;object-fit:cover}.review-copy h3{font-size:1.4rem}}
     @media(max-width:600px){.services-wrap{padding:40px 18px 60px}.service-card{padding:22px}.service-dialog{padding:20px}.coupon-entry{grid-template-columns:1fr}.coupon-entry button{width:100%}}
   </style>
 </head>
@@ -63,6 +76,27 @@
     </section>
     <div id="servicesStatus" class="service-status" role="status" aria-live="polite">Loading available services…</div>
     <section id="serviceGrid" class="service-grid" aria-label="Available services"></section>
+
+    <section class="devotee-reviews" aria-labelledby="devoteeReviewsTitle">
+      <div class="reviews-heading">
+        <div class="section-kicker">PERSONAL REFLECTIONS</div>
+        <h2 id="devoteeReviewsTitle">Experiences Shared by Our Devotees</h2>
+        <p>Every spiritual journey is personal. Read the experiences and reflections shared by devotees who have entrusted Protectyourself Foundation with their customised mantra jaap and sankalpa.</p>
+      </div>
+      <article class="review-card">
+        <a class="review-photo-link" href="https://ibb.co/cXkthr98" target="_blank" rel="noopener noreferrer" aria-label="View the devotee's shared photograph">
+          <img class="review-photo" src="https://i.ibb.co/cXkthr98/9f07a234-7f14-4c7f-b55d-47106c1f48cb.png" alt="Photograph shared by a devotee for their personal testimonial" loading="lazy" decoding="async">
+        </a>
+        <div class="review-copy">
+          <div class="review-label">A devotee's personal experience</div>
+          <h3>Reflections on a Personal Journey</h3>
+          <blockquote>“Before taking this service, my 2D echocardiography report showed a left ventricular ejection fraction (LVEF) of 20%. Approximately one year later, my new 2D echocardiography report showed an LVEF of 40–45%. I also observed that my blood pressure had reduced significantly during this period. I am sharing my experience to describe the changes I have observed in my life and heart-health reports.”</blockquote>
+          <p class="review-attribution">Shared by a devotee of Protectyourself Foundation</p>
+        </div>
+      </article>
+      <p class="review-disclaimer">This testimonial reflects an individual's account and does not establish that a spiritual service caused a change in heart function or blood pressure. Experiences vary. Spiritual services are not a substitute for medical advice, diagnosis, treatment, or prescribed medication. Please consult a qualified healthcare professional about medical conditions and test results.</p>
+    </section>
+
     <p class="disclaimer" style="margin-top:28px">Please review the service description and ask any questions before booking. No service guarantees supernatural, medical, financial, or other specific outcomes.</p>
   </main>
 
